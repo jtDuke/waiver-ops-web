@@ -2,8 +2,13 @@ import Link from "next/link";
 
 import { PlusIcon, SettingsIcon } from "@/components/icons";
 import { Navigation } from "@/components/navigation";
+import { getShellIdentity } from "@/lib/auth/session";
 
-export function AppShell({ children }: { children: React.ReactNode }) {
+export async function AppShell({ children }: { children: React.ReactNode }) {
+  const identity = await getShellIdentity();
+  const accountName = identity?.name ?? "Your Account";
+  const accountDetail = identity?.email ?? "2026 season";
+
   return (
     <div className="app-shell">
       <aside className="sidebar">
@@ -18,7 +23,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </div>
         <div className="profile-chip">
           <span aria-hidden="true" className="avatar"><SettingsIcon /></span>
-          <span><strong>Your Account</strong><small>2026 season</small></span>
+          <span className="profile-copy"><strong>{accountName}</strong><small>{accountDetail}</small></span>
+          {identity ? <a className="sign-out-link" href="/logout">Sign out</a> : null}
         </div>
       </aside>
       <div className="content-column">

@@ -4,21 +4,33 @@ import { cookies } from "next/headers";
 import type { ZodType } from "zod";
 
 import {
+  connectionListResponseSchema,
   healthResponseSchema,
   leagueListResponseSchema,
   meResponseSchema,
+  playerIntelligenceResponseSchema,
   providerSchema,
   recommendationResponseSchema,
+  sessionResponseSchema,
+  yahooCallbackResponseSchema,
+  yahooStartResponseSchema,
+  type ConnectionSnapshot,
   type DashboardSnapshot,
+  type PlayerIntelligenceSnapshot,
+  type ProviderConnection,
   type RecommendationSnapshot,
 } from "@/lib/api/contracts";
 
 const LOCAL_API_URL = "http://127.0.0.1:8000";
 const REQUEST_TIMEOUT_MS = 4_000;
 
-class ApiRequestError extends Error {}
+export class ApiRequestError extends Error {
+  constructor(message: string, readonly status?: number) {
+    super(message);
+  }
+}
 
-function apiBaseUrl(): string | null {
+export function getApiBaseUrl(): string | null {
   const configured = process.env.WAIVER_API_BASE_URL?.trim();
   if (configured) {
     return configured.replace(/\/$/, "");
@@ -32,15 +44,30 @@ async function requestApi<T>(
   path: string,
   cookieHeader: string,
   schema: ZodType<T>,
+  options: { method?: "GET" | "POST" | "PATCH" | "DELETE"; body?: unknown } = {},
 ): Promise<T> {
+  const headers = new Headers();
+  if (cookieHeader) {
+    headers.set("cookie", cookieHeader);
+  }
+  if (options.body !== undefined) {
+    headers.set("content-type", "application/json");
+  }
   const response = await fetch(`${baseUrl}${path}`, {
     cache: "no-store",
-    headers: cookieHeader ? { cookie: cookieHeader } : undefined,
+    method: options.method ?? "GET",
+    headers,
+    body: options.body === undefined ? undefined : JSON.stringify(options.body),
     signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
   });
 
   if (!response.ok) {
-    throw new ApiRequestError(`The application API returned ${response.status}.`);
+    throw new ApiRequestError(
+      response.status === 401
+        ? "Your application session has expired."
+        : `The application API returned ${response.status}.`,
+      response.status,
+    );
   }
 
   const result = schema.safeParse(await response.json());
@@ -52,7 +79,7 @@ async function requestApi<T>(
 }
 
 export async function getDashboardSnapshot(): Promise<DashboardSnapshot> {
-  const baseUrl = apiBaseUrl();
+  const baseUrl = getApiBaseUrl();
   if (!baseUrl) {
     return {
       status: "unavailable",
@@ -96,7 +123,7 @@ export async function getRecommendationSnapshot(
     return { status: "unavailable", reason: "This league address is invalid." };
   }
 
-  const baseUrl = apiBaseUrl();
+  const baseUrl = getApiBaseUrl();
   if (!baseUrl) {
     return {
       status: "unavailable",
@@ -134,5 +161,137 @@ export async function getRecommendationSnapshot(
         ? error.message
         : "The application API is currently unreachable.";
     return { status: "unavailable", reason };
+  }
+}
+
+export async function exchangeApiSession(idToken: string): Promise<string> {
+  const baseUrl = getApiBaseUrl();
+  if (!baseUrl) {
+    throw new ApiRequestError("The application API has not been configured.");
+  }
+
+  const response = await fetch(`${baseUrl}/api/v1/auth/session`, {
+    method: "POST",
+    cache: "no-store",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ id_token: idToken }),
+    signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+  });
+  if (!response.ok) {
+    throw new ApiRequestError(
+      `The application session exchange returned ${response.status}.`,
+      response.status,
+    );
+  }
+  const parsed = sessionResponseSchema.safeParse(await response.json());
+  const sessionCookie = response.headers.get("set-cookie");
+  if (!parsed.success || !sessionCookie) {
+    throw new ApiRequestError("The application session exchange was incomplete.");
+  }
+  return sessionCookie;
+}
+
+export async function getConnectionsSnapshot(): Promise<ConnectionSnapshot> {
+  const baseUrl = getApiBaseUrl();
+  if (!baseUrl) {
+    return {
+      status: "unavailable",
+      reason: "The application API has not been configured for this environment.",
+    };
+  }
+  try {
+    const cookieHeader = (await cookies()).toString();
+    const data = await requestApi(
+      baseUrl,
+      "/api/v1/connections",
+      cookieHeader,
+      connectionListResponseSchema,
+    );
+    return { status: "ready", connections: data.connections };
+  } catch (error) {
+    return {
+      status: "unavailable",
+      reason: error instanceof Error ? error.message : "Connections are unavailable.",
+    };
+  }
+}
+
+export async function connectSleeper(
+  username: string,
+  season: number,
+): Promise<ProviderConnection> {
+  const baseUrl = getApiBaseUrl();
+  if (!baseUrl) {
+    throw new ApiRequestError("The application API has not been configured.");
+  }
+  return requestApi(
+    baseUrl,
+    "/api/v1/connections/sleeper",
+    (await cookies()).toString(),
+    connectionListResponseSchema.shape.connections.element,
+    { method: "POST", body: { username, season } },
+  );
+}
+
+export async function getYahooAuthorizationUrl(): Promise<string> {
+  const baseUrl = getApiBaseUrl();
+  if (!baseUrl) {
+    throw new ApiRequestError("The application API has not been configured.");
+  }
+  const data = await requestApi(
+    baseUrl,
+    "/api/v1/oauth/yahoo/start",
+    (await cookies()).toString(),
+    yahooStartResponseSchema,
+  );
+  return data.authorization_url;
+}
+
+export async function completeYahooAuthorization(
+  code: string,
+  state: string,
+): Promise<void> {
+  const baseUrl = getApiBaseUrl();
+  if (!baseUrl) {
+    throw new ApiRequestError("The application API has not been configured.");
+  }
+  const query = new URLSearchParams({ code, state });
+  await requestApi(
+    baseUrl,
+    `/api/v1/oauth/yahoo/callback?${query}`,
+    (await cookies()).toString(),
+    yahooCallbackResponseSchema,
+  );
+}
+
+export async function getPlayerIntelligenceSnapshot(
+  playerId: string,
+): Promise<PlayerIntelligenceSnapshot> {
+  if (!playerId.trim()) {
+    return { status: "unavailable", reason: "This player address is invalid." };
+  }
+  const baseUrl = getApiBaseUrl();
+  if (!baseUrl) {
+    return { status: "unavailable", reason: "The application API is not configured." };
+  }
+  try {
+    const data = await requestApi(
+      baseUrl,
+      `/api/v1/players/${encodeURIComponent(playerId)}/intelligence`,
+      (await cookies()).toString(),
+      playerIntelligenceResponseSchema,
+    );
+    if (!data.available || !data.signal) {
+      return {
+        status: "empty",
+        reason: data.warning ?? "No meaningful evidence is available for this player.",
+      };
+    }
+    return { status: "ready", data: { ...data, signal: data.signal } };
+  } catch (error) {
+    return {
+      status: "unavailable",
+      reason: error instanceof Error ? error.message : "Player intelligence is unavailable.",
+    };
   }
 }

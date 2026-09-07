@@ -35,17 +35,22 @@ function LeagueList({ leagues }: { leagues: League[] }) {
 }
 
 function ApiSetup({ reason }: { reason: string }) {
+  const sessionExpired = reason.toLowerCase().includes("session");
   return (
     <div className="empty-state api-setup">
       <span aria-hidden="true" className="empty-icon"><PulseIcon /></span>
       <div>
-        <h3>Connect the Application Service</h3>
+        <h3>{sessionExpired ? "Restore Your Session" : "Connect the Application Service"}</h3>
         <p>{reason}</p>
-        <ol className="setup-steps">
-          <li><span>1</span> Start the FastAPI service on port 8000.</li>
-          <li><span>2</span> Set <code>WAIVER_API_BASE_URL</code> if it runs elsewhere.</li>
-          <li><span>3</span> Refresh this page to load your leagues.</li>
-        </ol>
+        {sessionExpired ? (
+          <Link className="button primary-button session-repair" href="/auth/sync">Restore Secure Session</Link>
+        ) : (
+          <ol className="setup-steps">
+            <li><span>1</span> Start the FastAPI service on port 8000.</li>
+            <li><span>2</span> Set <code>WAIVER_API_BASE_URL</code> if it runs elsewhere.</li>
+            <li><span>3</span> Refresh this page to load your leagues.</li>
+          </ol>
+        )}
       </div>
     </div>
   );

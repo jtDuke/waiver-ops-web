@@ -16,6 +16,10 @@ export const providerConnectionSchema = z.object({
   display_name: z.string().nullable(),
 });
 
+export const connectionListResponseSchema = z.object({
+  connections: z.array(providerConnectionSchema),
+});
+
 export const meResponseSchema = z.object({
   identity: identitySchema,
   connections: z.array(providerConnectionSchema),
@@ -44,8 +48,49 @@ const playerSignalSchema = z
     evidence_count: z.number().int().nonnegative(),
     source_count: z.number().int().nonnegative(),
     summary: z.string().nullable(),
+    latest_evidence_at: z.iso.datetime({ offset: true }).nullable().optional(),
+    hard_status: z.string().nullable().optional(),
+    components: z
+      .array(
+        z.object({
+          source_name: z.string(),
+          source_url: z.url().nullable(),
+          published_at: z.iso.datetime({ offset: true }),
+          evidence_type: z.string(),
+          summary: z.string(),
+          relevance: z.string(),
+          direction: z.number().min(-1).max(1),
+          effective_weight: z.number(),
+          confidence: z.number().min(0).max(1),
+          related_player_id: z.string().nullable(),
+        }),
+      )
+      .optional(),
   })
   .passthrough();
+
+export const playerIntelligenceResponseSchema = z.object({
+  player_id: z.string(),
+  available: z.boolean(),
+  generated_at: z.iso.datetime().nullable(),
+  fingerprint: z.string(),
+  warning: z.string().nullable(),
+  signal: playerSignalSchema.nullable(),
+});
+
+export const sessionResponseSchema = z.object({
+  authenticated: z.literal(true),
+  expires_at: z.iso.datetime(),
+});
+
+export const yahooStartResponseSchema = z.object({
+  authorization_url: z.url(),
+});
+
+export const yahooCallbackResponseSchema = z.object({
+  connected: z.boolean(),
+  league_count: z.number().int().nonnegative(),
+});
 
 export const recommendationItemSchema = z
   .object({
@@ -119,6 +164,8 @@ export type MeResponse = z.infer<typeof meResponseSchema>;
 export type League = z.infer<typeof leagueSchema>;
 export type Recommendation = z.infer<typeof recommendationItemSchema>;
 export type RecommendationResponse = z.infer<typeof recommendationResponseSchema>;
+export type ProviderConnection = z.infer<typeof providerConnectionSchema>;
+export type PlayerIntelligenceResponse = z.infer<typeof playerIntelligenceResponseSchema>;
 
 export type DashboardSnapshot =
   | {
@@ -141,6 +188,32 @@ export type RecommendationSnapshot =
   | {
       status: "not-ready";
       data: RecommendationResponse;
+      reason: string;
+    }
+  | {
+      status: "unavailable";
+      reason: string;
+    };
+
+export type ConnectionSnapshot =
+  | {
+      status: "ready";
+      connections: ProviderConnection[];
+    }
+  | {
+      status: "unavailable";
+      reason: string;
+    };
+
+export type PlayerIntelligenceSnapshot =
+  | {
+      status: "ready";
+      data: PlayerIntelligenceResponse & {
+        signal: NonNullable<PlayerIntelligenceResponse["signal"]>;
+      };
+    }
+  | {
+      status: "empty";
       reason: string;
     }
   | {

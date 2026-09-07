@@ -12,6 +12,10 @@ function signedPoints(value: number) {
   return `${value >= 0 ? "+" : ""}${value.toFixed(1)}`;
 }
 
+function queryValue(value: string | string[] | undefined) {
+  return Array.isArray(value) ? value[0] ?? "" : value ?? "";
+}
+
 function RecommendationCard({ recommendation, rank }: { recommendation: Recommendation; rank: number }) {
   const newsSummary = recommendation.player_signal?.summary;
 
@@ -35,7 +39,13 @@ function RecommendationCard({ recommendation, rank }: { recommendation: Recommen
         {newsSummary ? (
           <div className="news-summary">
             <IntelligenceIcon />
-            <div><strong>Why the news matters</strong><p>{newsSummary}</p></div>
+            <div>
+              <strong>Why the news matters</strong>
+              <p>{newsSummary}</p>
+              <Link className="evidence-link" href={`/players/${encodeURIComponent(recommendation.player_id)}?name=${encodeURIComponent(recommendation.name)}`}>
+                Read ranked evidence <ArrowIcon />
+              </Link>
+            </div>
           </div>
         ) : null}
       </div>
@@ -47,9 +57,10 @@ function RecommendationCard({ recommendation, rank }: { recommendation: Recommen
   );
 }
 
-export default async function LeagueDetailPage({ params }: PageProps<"/leagues/[provider]/[leagueId]">) {
+export default async function LeagueDetailPage({ params, searchParams }: PageProps<"/leagues/[provider]/[leagueId]">) {
   await connection();
   const { provider, leagueId } = await params;
+  const query = await searchParams;
   const snapshot = await getRecommendationSnapshot(provider, leagueId);
 
   if (snapshot.status !== "ready") {
@@ -75,7 +86,20 @@ export default async function LeagueDetailPage({ params }: PageProps<"/leagues/[
   const recommendations = view.direct_recommendations.length > 0
     ? view.direct_recommendations
     : view.recommendations;
-  const shownRecommendations = recommendations.slice(0, 12);
+  const search = queryValue(query.q).trim().toLowerCase();
+  const selectedPosition = queryValue(query.position);
+  const selectedCategory = queryValue(query.category);
+  const newsOnly = queryValue(query.news) === "1";
+  const positions = [...new Set(recommendations.map((item) => item.position))].sort();
+  const categories = [...new Set(recommendations.map((item) => item.category_label))].sort();
+  const filteredRecommendations = recommendations.filter((item) => {
+    if (search && !`${item.name} ${item.team ?? ""}`.toLowerCase().includes(search)) return false;
+    if (selectedPosition && item.position !== selectedPosition) return false;
+    if (selectedCategory && item.category_label !== selectedCategory) return false;
+    if (newsOnly && !item.player_signal?.summary) return false;
+    return true;
+  });
+  const shownRecommendations = filteredRecommendations.slice(0, 12);
   const teamName = view.target_strength.team_name;
 
   return (
@@ -89,8 +113,37 @@ export default async function LeagueDetailPage({ params }: PageProps<"/leagues/[
 
       <div className="board-heading">
         <div><p className="eyebrow">Priority board</p><h2>Best Moves for This Roster</h2></div>
-        <p>{shownRecommendations.length} actionable {shownRecommendations.length === 1 ? "option" : "options"}</p>
+        <p>{filteredRecommendations.length} of {recommendations.length} actionable {recommendations.length === 1 ? "option" : "options"}</p>
       </div>
+
+      <form className="recommendation-filters panel" method="get">
+        <label className="search-field">
+          <span>Find a player</span>
+          <input defaultValue={queryValue(query.q)} name="q" placeholder="Name or team" type="search" />
+        </label>
+        <label>
+          <span>Position</span>
+          <select defaultValue={selectedPosition} name="position">
+            <option value="">All positions</option>
+            {positions.map((position) => <option key={position} value={position}>{position}</option>)}
+          </select>
+        </label>
+        <label>
+          <span>Recommendation</span>
+          <select defaultValue={selectedCategory} name="category">
+            <option value="">All recommendations</option>
+            {categories.map((category) => <option key={category} value={category}>{category}</option>)}
+          </select>
+        </label>
+        <label className="checkbox-field">
+          <input defaultChecked={newsOnly} name="news" type="checkbox" value="1" />
+          <span>Meaningful news only</span>
+        </label>
+        <div className="filter-actions">
+          <button className="button primary-button" type="submit">Apply Filters</button>
+          <Link className="button secondary-button" href={`/leagues/${provider}/${leagueId}`}>Clear</Link>
+        </div>
+      </form>
 
       {shownRecommendations.length > 0 ? (
         <section aria-label="Recommended waiver additions" className="recommendation-list">
@@ -101,8 +154,8 @@ export default async function LeagueDetailPage({ params }: PageProps<"/leagues/[
       ) : (
         <section className="panel placeholder-panel compact-empty">
           <span aria-hidden="true" className="empty-icon"><LeagueIcon /></span>
-          <h2>No Direct Moves Clear the Bar</h2>
-          <p>The model did not find an available player who materially improves this roster right now.</p>
+          <h2>{recommendations.length > 0 ? "No Recommendations Match Those Filters" : "No Direct Moves Clear the Bar"}</h2>
+          <p>{recommendations.length > 0 ? "Clear one or more filters to return to the full priority board." : "The model did not find an available player who materially improves this roster right now."}</p>
         </section>
       )}
 
