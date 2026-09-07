@@ -4,6 +4,11 @@ The standalone Next.js frontend for Waiver Ops. This repository owns the web
 experience only; the tested recommendation engine and provider integrations
 remain behind the versioned Python/FastAPI API in `waiver-ops`.
 
+The executable path to production and complete Streamlit removal is maintained
+in [NEXTJS_LAUNCH_PLAN.md](NEXTJS_LAUNCH_PLAN.md). The matching one-time and
+repeatable hosting instructions are in
+[PRODUCTION_DEPLOYMENT.md](PRODUCTION_DEPLOYMENT.md).
+
 ## Local development
 
 The local product has two processes because the repositories have separate
@@ -90,6 +95,6 @@ npm run build
 
 ## Deployment status
 
-This repository is not yet deployed. Streamlit remains the production UI until
-authentication, recommendation parity, observability, and rollback checks are
-complete.
+This repository is not yet deployed. It is the only target for new product UI
+work. Streamlit is frozen and will be removed after the production acceptance
+checks in the launch plan; it is not the long-term rollback path.
