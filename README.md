@@ -6,20 +6,38 @@ remain behind the versioned Python/FastAPI API in `waiver-ops`.
 
 ## Local development
 
-1. Start the FastAPI service from the sibling `waiver_priority` project:
+The local product has two processes because the repositories have separate
+responsibilities:
 
-   ```powershell
-   .\.venv\Scripts\python.exe -m uvicorn waiver_api.main:app --reload --port 8000
-   ```
+- `waiver_priority` runs the Python recommendation engine and FastAPI service.
+- `waiver-ops-web` runs the Next.js interface and owns all npm dependencies.
 
-2. From this repository, install dependencies and start Next.js:
+From `waiver-ops-web`, install the frontend dependencies once:
 
-   ```powershell
-   npm install
-   npm run dev
-   ```
+```powershell
+cd "C:\Users\jtryg\OneDrive\Desktop\Fantasy Football\2026\waiver-ops-web"
+npm install
+```
 
-3. Open `http://localhost:3000`.
+Then use one command whenever you want to run the complete local application:
+
+```powershell
+npm run dev:stack
+```
+
+Open `http://localhost:3000`. Press `Ctrl+C` once to stop both processes. The
+launcher reuses an API already running on port 8000; otherwise it starts the
+sibling service, waits for its health check, and shuts it down with Next.js.
+Backend startup logs are kept under `.devlogs/` if troubleshooting is needed.
+
+Git Bash, macOS, and Linux users can run the equivalent launcher directly:
+
+```bash
+./scripts/dev-stack.sh
+```
+
+To run the processes manually instead, start FastAPI from `waiver_priority`
+and run `npm run dev` from `waiver-ops-web` in a second terminal.
 
 Next.js uses `http://127.0.0.1:8000` automatically in development. Copy
 `.env.example` to `.env.local` only when the API runs elsewhere.
