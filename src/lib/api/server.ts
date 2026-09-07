@@ -7,7 +7,10 @@ import {
   healthResponseSchema,
   leagueListResponseSchema,
   meResponseSchema,
+  providerSchema,
+  recommendationResponseSchema,
   type DashboardSnapshot,
+  type RecommendationSnapshot,
 } from "@/lib/api/contracts";
 
 const LOCAL_API_URL = "http://127.0.0.1:8000";
@@ -75,6 +78,56 @@ export async function getDashboardSnapshot(): Promise<DashboardSnapshot> {
     }
 
     return { status: "ready", me, leagues: leagueList.leagues };
+  } catch (error) {
+    const reason =
+      error instanceof ApiRequestError
+        ? error.message
+        : "The application API is currently unreachable.";
+    return { status: "unavailable", reason };
+  }
+}
+
+export async function getRecommendationSnapshot(
+  providerValue: string,
+  leagueId: string,
+): Promise<RecommendationSnapshot> {
+  const provider = providerSchema.safeParse(providerValue);
+  if (!provider.success || !leagueId.trim()) {
+    return { status: "unavailable", reason: "This league address is invalid." };
+  }
+
+  const baseUrl = apiBaseUrl();
+  if (!baseUrl) {
+    return {
+      status: "unavailable",
+      reason: "The application API has not been configured for this environment.",
+    };
+  }
+
+  try {
+    const cookieHeader = (await cookies()).toString();
+    const data = await requestApi(
+      baseUrl,
+      `/api/v1/leagues/${provider.data}/${encodeURIComponent(leagueId)}/recommendations`,
+      cookieHeader,
+      recommendationResponseSchema,
+    );
+
+    if (!data.recommendation_available || !data.recommendation_view) {
+      return {
+        status: "not-ready",
+        data,
+        reason: data.recommendation_reason ?? "Recommendations are not available yet.",
+      };
+    }
+
+    return {
+      status: "ready",
+      data: {
+        ...data,
+        recommendation_view: data.recommendation_view,
+      },
+    };
   } catch (error) {
     const reason =
       error instanceof ApiRequestError

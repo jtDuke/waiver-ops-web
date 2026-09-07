@@ -1,12 +1,64 @@
+import Link from "next/link";
+import { connection } from "next/server";
+
 import { LeagueIcon } from "@/components/icons";
 import { SectionPage } from "@/components/section-page";
+import type { League } from "@/lib/api/contracts";
+import { getDashboardSnapshot } from "@/lib/api/server";
 
 export const metadata = { title: "Leagues" };
 
-export default function LeaguesPage() {
+function formatSyncTime(value: string) {
+  return new Intl.DateTimeFormat("en-US", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(new Date(value));
+}
+
+function LeagueCard({ league }: { league: League }) {
+  return (
+    <Link
+      className="league-card panel"
+      href={`/leagues/${league.provider}/${league.league_id}`}
+    >
+      <div className="league-card-topline">
+        <span aria-hidden="true" className={`provider-mark ${league.provider}`}>
+          {league.provider === "sleeper" ? "S" : "Y"}
+        </span>
+        <span className="provider-label">{league.provider}</span>
+      </div>
+      <div>
+        <h2>{league.display_name ?? `${league.provider} league`}</h2>
+        <p>{league.season} season</p>
+      </div>
+      <span className="league-card-sync">Synced {formatSyncTime(league.last_synced_at)}</span>
+      <span className="league-card-action">Open recommendation board <span aria-hidden="true">→</span></span>
+    </Link>
+  );
+}
+
+export default async function LeaguesPage() {
+  await connection();
+  const snapshot = await getDashboardSnapshot();
+
   return (
     <SectionPage eyebrow="League workspace" title="Your Leagues" description="Review each roster in its own scoring and availability context." actionHref="/connections" actionLabel="Add Connection">
-      <section className="panel placeholder-panel"><span aria-hidden="true" className="empty-icon"><LeagueIcon /></span><h2>League Browser Is Next</h2><p>The application shell and API contract are in place. League cards and recommendation drill-downs are the next frontend slice.</p></section>
+      {snapshot.status === "ready" && snapshot.leagues.length > 0 ? (
+        <section aria-label="Connected leagues" className="league-card-grid">
+          {snapshot.leagues.map((league) => (
+            <LeagueCard key={`${league.provider}:${league.league_id}`} league={league} />
+          ))}
+        </section>
+      ) : (
+        <section className="panel placeholder-panel">
+          <span aria-hidden="true" className="empty-icon"><LeagueIcon /></span>
+          <h2>{snapshot.status === "ready" ? "No Leagues Connected Yet" : "League Data Is Unavailable"}</h2>
+          <p>{snapshot.status === "ready" ? "Connect Sleeper or Yahoo to build your first league-specific recommendation board." : snapshot.reason}</p>
+          <Link className="button primary-button empty-action" href={snapshot.status === "ready" ? "/connections" : "/"}>
+            {snapshot.status === "ready" ? "Add a connection" : "Return to dashboard"}
+          </Link>
+        </section>
+      )}
     </SectionPage>
   );
 }
