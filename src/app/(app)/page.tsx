@@ -106,7 +106,7 @@ export default async function DashboardPage() {
             <li><span>02</span><div><strong>Player outlook</strong><small>Rankings, projections, and recent performance</small></div></li>
             <li><span>03</span><div><strong>Intelligence layer</strong><small>Meaningful news across players and teammates</small></div></li>
           </ul>
-          <Link className="button secondary-button full-width" href="/intelligence">Explore Intelligence</Link>
+          <Link className="button secondary-button full-width" href="/leagues">Open a Recommendation Board</Link>
         </aside>
       </div>
     </div>

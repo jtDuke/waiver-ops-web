@@ -3,13 +3,11 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-import { DashboardIcon, IntelligenceIcon, LeagueIcon, SettingsIcon } from "@/components/icons";
+import { DashboardIcon, LeagueIcon } from "@/components/icons";
 
 const navigationItems = [
   { href: "/", label: "Dashboard", icon: DashboardIcon },
   { href: "/leagues", label: "Leagues", icon: LeagueIcon },
-  { href: "/intelligence", label: "Intelligence", icon: IntelligenceIcon },
-  { href: "/settings", label: "Settings", icon: SettingsIcon },
 ] as const;
 
 export function Navigation() {

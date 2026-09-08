@@ -51,7 +51,9 @@ Already complete:
 
 Known launch gaps:
 
-- Settings and the top-level intelligence route are placeholders.
+- Settings and top-level intelligence are intentionally excluded from the MVP
+  navigation; old route bookmarks redirect to live connection and league
+  surfaces.
 - Manual refresh has no complete user feedback loop.
 - Rival-interest data is not fully presented in Next.js.
 - Critical authenticated browser flows do not yet have Playwright coverage.
@@ -63,6 +65,13 @@ Known launch gaps:
 ## Critical path
 
 ### Phase 1 — Freeze the launch surface
+
+Status: **complete.** The MVP navigation contains only Dashboard and Leagues;
+connection management remains the persistent secondary action. The unfinished
+Settings and top-level Intelligence destinations are no longer advertised,
+their old URLs redirect to useful live routes, and the dashboard intelligence
+CTA opens the recommendation workflow where player evidence is already
+available.
 
 The launch-critical flow is:
 
@@ -191,8 +200,8 @@ Next.js → FastAPI exclusively.
 
 Keep each change independently releasable and use this order:
 
-1. `web/launch-surface`: remove placeholders from navigation and lock the MVP
-   route set.
+1. `web/launch-surface` (**complete**): remove placeholders from navigation and
+   lock the MVP route set.
 2. `web/refresh-rivals-preferences`: finish the remaining primary-flow UI.
 3. `web/e2e-launch-gates`: add Playwright, contract drift, accessibility, and
    client-secret checks.
