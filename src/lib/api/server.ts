@@ -9,8 +9,10 @@ import {
   leagueListResponseSchema,
   meResponseSchema,
   playerIntelligenceResponseSchema,
+  preferencesResponseSchema,
   providerSchema,
   recommendationResponseSchema,
+  refreshResponseSchema,
   sessionResponseSchema,
   yahooCallbackResponseSchema,
   yahooStartResponseSchema,
@@ -18,7 +20,9 @@ import {
   type DashboardSnapshot,
   type PlayerIntelligenceSnapshot,
   type ProviderConnection,
+  type PreferencesResponse,
   type RecommendationSnapshot,
+  type RefreshResponse,
 } from "@/lib/api/contracts";
 
 const LOCAL_API_URL = "http://127.0.0.1:8000";
@@ -89,7 +93,19 @@ export async function getDashboardSnapshot(): Promise<DashboardSnapshot> {
 
   try {
     const cookieHeader = (await cookies()).toString();
-    const [health, me, leagueList] = await Promise.all([
+    const preferencesRequest = requestApi(
+      baseUrl,
+      "/api/v1/preferences",
+      cookieHeader,
+      preferencesResponseSchema,
+    ).catch(
+      (): PreferencesResponse => ({
+        default_provider: null,
+        default_league_id: null,
+        values: {},
+      }),
+    );
+    const [health, me, leagueList, preferences] = await Promise.all([
       requestApi(baseUrl, "/health/ready", "", healthResponseSchema),
       requestApi(baseUrl, "/api/v1/me", cookieHeader, meResponseSchema),
       requestApi(
@@ -98,13 +114,14 @@ export async function getDashboardSnapshot(): Promise<DashboardSnapshot> {
         cookieHeader,
         leagueListResponseSchema,
       ),
+      preferencesRequest,
     ]);
 
     if (health.status !== "ok") {
       throw new ApiRequestError("The application API is not ready.");
     }
 
-    return { status: "ready", me, leagues: leagueList.leagues };
+    return { status: "ready", me, leagues: leagueList.leagues, preferences };
   } catch (error) {
     const reason =
       error instanceof ApiRequestError
@@ -294,4 +311,60 @@ export async function getPlayerIntelligenceSnapshot(
       reason: error instanceof Error ? error.message : "Player intelligence is unavailable.",
     };
   }
+}
+
+export async function saveDefaultLeague(
+  providerValue: string | null,
+  leagueId: string | null,
+): Promise<PreferencesResponse> {
+  const baseUrl = getApiBaseUrl();
+  if (!baseUrl) {
+    throw new ApiRequestError("The application API has not been configured.");
+  }
+  const provider = providerValue === null ? null : providerSchema.safeParse(providerValue);
+  if (providerValue !== null && (!provider || !provider.success || !leagueId?.trim())) {
+    throw new ApiRequestError("The selected default league is invalid.");
+  }
+  const cookieHeader = (await cookies()).toString();
+  const current = await requestApi(
+    baseUrl,
+    "/api/v1/preferences",
+    cookieHeader,
+    preferencesResponseSchema,
+  );
+  return requestApi(
+    baseUrl,
+    "/api/v1/preferences",
+    cookieHeader,
+    preferencesResponseSchema,
+    {
+      method: "PATCH",
+      body: {
+        default_provider: providerValue === null ? null : provider?.data,
+        default_league_id: providerValue === null ? null : leagueId,
+        values: current.values,
+      },
+    },
+  );
+}
+
+export async function refreshLeague(
+  providerValue: string,
+  leagueId: string,
+): Promise<RefreshResponse> {
+  const provider = providerSchema.safeParse(providerValue);
+  if (!provider.success || !leagueId.trim()) {
+    throw new ApiRequestError("This league address is invalid.");
+  }
+  const baseUrl = getApiBaseUrl();
+  if (!baseUrl) {
+    throw new ApiRequestError("The application API has not been configured.");
+  }
+  return requestApi(
+    baseUrl,
+    `/api/v1/leagues/${provider.data}/${encodeURIComponent(leagueId)}/refresh`,
+    (await cookies()).toString(),
+    refreshResponseSchema,
+    { method: "POST" },
+  );
 }

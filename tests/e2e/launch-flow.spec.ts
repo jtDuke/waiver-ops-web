@@ -1,0 +1,58 @@
+import { expect, test } from "@playwright/test";
+
+test("advertises only complete launch destinations", async ({ page }) => {
+  await page.goto("/");
+
+  const navigation = page.getByRole("navigation", { name: "Primary" });
+  await expect(navigation.getByRole("link", { name: "Dashboard" })).toBeVisible();
+  await expect(navigation.getByRole("link", { name: "Leagues" })).toBeVisible();
+  await expect(navigation.getByRole("link", { name: "Settings" })).toHaveCount(0);
+  await expect(navigation.getByRole("link", { name: "Intelligence" })).toHaveCount(0);
+  await expect(page.getByRole("link", { name: "Open a Recommendation Board" })).toHaveAttribute("href", "/leagues");
+});
+
+test("redirects retired placeholder routes to useful live surfaces", async ({ page }) => {
+  await page.goto("/settings");
+  await expect(page).toHaveURL(/\/connections$/);
+
+  await page.goto("/intelligence");
+  await expect(page).toHaveURL(/\/leagues$/);
+});
+
+test("saves a default league and completes the waiver decision flow", async ({ page }) => {
+  await page.goto("/leagues");
+
+  await page.getByLabel("Default league").selectOption("sleeper::league-1");
+  await page.getByRole("button", { name: "Save default" }).click();
+  await expect(page.getByText("Your default league was saved.")).toBeVisible();
+  await expect(page.getByText("Default", { exact: true })).toBeVisible();
+
+  await page.getByRole("link", { name: /Sunday Strategy/ }).click();
+  await expect(page.getByRole("heading", { name: "Best Moves for This Roster" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Jordan Example" })).toBeVisible();
+  await expect(page.getByText("Meaningful news", { exact: true })).toBeVisible();
+
+  await page.getByText(/Modeled fit for 1 rival team/).click();
+  await expect(page.getByText("Fourth and Long")).toBeVisible();
+  await expect(page.getByText(/not actual claim intent/)).toBeVisible();
+
+  await page.getByRole("button", { name: "Refresh league" }).click();
+  await expect(page.getByText(/League data refreshed|already current/)).toBeVisible();
+
+  await page.getByRole("checkbox", { name: "Meaningful news only" }).check();
+  await page.getByRole("button", { name: "Apply Filters" }).click();
+  await expect(page).toHaveURL(/news=1/);
+  await expect(page.getByRole("heading", { name: "Jordan Example" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Casey Baseline" })).toHaveCount(0);
+
+  await page.getByRole("link", { name: "Read ranked evidence" }).click();
+  await expect(page.getByRole("heading", { name: /Jordan Example/ })).toBeVisible();
+  await expect(page.getByText("The player worked with the first-team offense throughout the week.")).toBeVisible();
+});
+
+test("fails closed when a user guesses another league URL", async ({ page }) => {
+  await page.goto("/leagues/sleeper/forbidden");
+
+  await expect(page.getByRole("heading", { name: "Recommendation Data Is Unavailable" })).toBeVisible();
+  await expect(page.getByText("The application API returned 403.")).toBeVisible();
+});

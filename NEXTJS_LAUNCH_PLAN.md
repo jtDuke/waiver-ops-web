@@ -102,6 +102,15 @@ flow works locally for both a populated fixture user and an empty new user.
 
 ### Phase 2 — Finish the browser contract
 
+Status: **core implementation complete.** Saved default-league preferences,
+explicit refresh feedback, rival-market context, runtime response validation,
+client-bundle secret scanning, and the critical recommendation journey are now
+implemented. Playwright exercises the deterministic product flow, redirects
+retired routes, and proves that guessed cross-tenant league URLs fail closed.
+The remaining Auth0 login/logout/session-repair and live provider-failure smoke
+checks require hosted callback URLs and credentials, so they are part of the
+Phase 4 preview-deployment gate rather than local development.
+
 - Add Server Actions or route handlers for preference updates and refresh.
 - Invalidate affected server-rendered routes after mutations so the result is
   visible without a manual reload.

@@ -34,3 +34,14 @@ jobs:
 
       - name: Build
         run: npm run build
+        env:
+          AUTH0_CLIENT_SECRET: ci-auth0-secret-must-stay-server-side
+
+      - name: Verify client boundary
+        run: npm run check:client-boundary
+
+      - name: Install Playwright browser
+        run: npx playwright install --with-deps chromium
+
+      - name: Run critical browser flows
+        run: npm run test:e2e

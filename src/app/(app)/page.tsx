@@ -9,7 +9,15 @@ function formatSyncTime(value: string) {
   return new Intl.DateTimeFormat("en-US", { dateStyle: "medium", timeStyle: "short" }).format(new Date(value));
 }
 
-function LeagueList({ leagues }: { leagues: League[] }) {
+function LeagueList({
+  leagues,
+  defaultProvider,
+  defaultLeagueId,
+}: {
+  leagues: League[];
+  defaultProvider: string | null;
+  defaultLeagueId: string | null;
+}) {
   if (leagues.length === 0) {
     return (
       <div className="empty-state">
@@ -20,13 +28,22 @@ function LeagueList({ leagues }: { leagues: League[] }) {
     );
   }
 
+  const orderedLeagues = [...leagues].sort((left, right) => {
+    const leftIsDefault = left.provider === defaultProvider && left.league_id === defaultLeagueId;
+    const rightIsDefault = right.provider === defaultProvider && right.league_id === defaultLeagueId;
+    return Number(rightIsDefault) - Number(leftIsDefault);
+  });
+
   return (
     <div className="league-list">
-      {leagues.map((league) => (
+      {orderedLeagues.map((league) => (
         <Link className="league-row" href={`/leagues/${league.provider}/${league.league_id}`} key={`${league.provider}:${league.league_id}`}>
           <span aria-hidden="true" className={`provider-mark ${league.provider}`}>{league.provider === "sleeper" ? "S" : "Y"}</span>
           <span className="league-copy"><strong>{league.display_name ?? `${league.provider} league`}</strong><small>{league.season} · Synced {formatSyncTime(league.last_synced_at)}</small></span>
-          <span className="provider-label">{league.provider}</span>
+          <span className="league-row-labels">
+            {league.provider === defaultProvider && league.league_id === defaultLeagueId ? <span className="default-label">Default</span> : null}
+            <span className="provider-label">{league.provider}</span>
+          </span>
           <ArrowIcon />
         </Link>
       ))}
@@ -93,7 +110,7 @@ export default async function DashboardPage() {
             <div><p className="eyebrow">League workspace</p><h2>Choose Where to Improve</h2></div>
             <Link className="text-link" href="/leagues">View All <ArrowIcon /></Link>
           </div>
-          {snapshot.status === "ready" ? <LeagueList leagues={snapshot.leagues} /> : <ApiSetup reason={snapshot.reason} />}
+          {snapshot.status === "ready" ? <LeagueList leagues={snapshot.leagues} defaultProvider={snapshot.preferences.default_provider} defaultLeagueId={snapshot.preferences.default_league_id} /> : <ApiSetup reason={snapshot.reason} />}
         </section>
 
         <aside className="panel intelligence-panel">

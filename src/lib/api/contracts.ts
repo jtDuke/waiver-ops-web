@@ -43,6 +43,19 @@ export const healthResponseSchema = z.object({
   status: z.enum(["ok", "not_ready"]),
 });
 
+export const preferencesResponseSchema = z.object({
+  default_provider: providerSchema.nullable(),
+  default_league_id: z.string().nullable(),
+  values: z.record(z.string(), z.unknown()),
+});
+
+export const refreshResponseSchema = z.object({
+  provider: providerSchema,
+  league_id: z.string(),
+  status: z.enum(["refreshed", "cached", "degraded"]),
+  warnings: z.array(z.string()),
+});
+
 const playerSignalSchema = z
   .object({
     evidence_count: z.number().int().nonnegative(),
@@ -92,6 +105,15 @@ export const yahooCallbackResponseSchema = z.object({
   league_count: z.number().int().nonnegative(),
 });
 
+const rivalFitSchema = z
+  .object({
+    team_name: z.string(),
+    lineup_gain: z.number(),
+    next_week_gain: z.number(),
+    reason: z.string(),
+  })
+  .passthrough();
+
 export const recommendationItemSchema = z
   .object({
     player_id: z.string(),
@@ -115,6 +137,8 @@ export const recommendationItemSchema = z
     primary_category: z.string(),
     data_complete: z.boolean(),
     completeness_notes: z.array(z.string()),
+    rivals_actionable_count: z.number().int().nonnegative().default(0),
+    top_rivals: z.array(rivalFitSchema).default([]),
   })
   .passthrough();
 
@@ -166,12 +190,15 @@ export type Recommendation = z.infer<typeof recommendationItemSchema>;
 export type RecommendationResponse = z.infer<typeof recommendationResponseSchema>;
 export type ProviderConnection = z.infer<typeof providerConnectionSchema>;
 export type PlayerIntelligenceResponse = z.infer<typeof playerIntelligenceResponseSchema>;
+export type PreferencesResponse = z.infer<typeof preferencesResponseSchema>;
+export type RefreshResponse = z.infer<typeof refreshResponseSchema>;
 
 export type DashboardSnapshot =
   | {
       status: "ready";
       me: MeResponse;
       leagues: League[];
+      preferences: PreferencesResponse;
     }
   | {
       status: "unavailable";

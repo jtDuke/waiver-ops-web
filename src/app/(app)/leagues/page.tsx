@@ -2,6 +2,7 @@ import Link from "next/link";
 import { connection } from "next/server";
 
 import { LeagueIcon } from "@/components/icons";
+import { DefaultLeagueForm } from "@/components/default-league-form";
 import { SectionPage } from "@/components/section-page";
 import type { League } from "@/lib/api/contracts";
 import { getDashboardSnapshot } from "@/lib/api/server";
@@ -15,7 +16,7 @@ function formatSyncTime(value: string) {
   }).format(new Date(value));
 }
 
-function LeagueCard({ league }: { league: League }) {
+function LeagueCard({ league, isDefault }: { league: League; isDefault: boolean }) {
   return (
     <Link
       className="league-card panel"
@@ -25,7 +26,10 @@ function LeagueCard({ league }: { league: League }) {
         <span aria-hidden="true" className={`provider-mark ${league.provider}`}>
           {league.provider === "sleeper" ? "S" : "Y"}
         </span>
-        <span className="provider-label">{league.provider}</span>
+        <span className="league-card-labels">
+          {isDefault ? <span className="default-label">Default</span> : null}
+          <span className="provider-label">{league.provider}</span>
+        </span>
       </div>
       <div>
         <h2>{league.display_name ?? `${league.provider} league`}</h2>
@@ -44,11 +48,18 @@ export default async function LeaguesPage() {
   return (
     <SectionPage eyebrow="League workspace" title="Your Leagues" description="Review each roster in its own scoring and availability context." actionHref="/connections" actionLabel="Add Connection">
       {snapshot.status === "ready" && snapshot.leagues.length > 0 ? (
-        <section aria-label="Connected leagues" className="league-card-grid">
-          {snapshot.leagues.map((league) => (
-            <LeagueCard key={`${league.provider}:${league.league_id}`} league={league} />
-          ))}
-        </section>
+        <>
+          <DefaultLeagueForm leagues={snapshot.leagues} preferences={snapshot.preferences} />
+          <section aria-label="Connected leagues" className="league-card-grid">
+            {snapshot.leagues.map((league) => (
+              <LeagueCard
+                isDefault={league.provider === snapshot.preferences.default_provider && league.league_id === snapshot.preferences.default_league_id}
+                key={`${league.provider}:${league.league_id}`}
+                league={league}
+              />
+            ))}
+          </section>
+        </>
       ) : (
         <section className="panel placeholder-panel">
           <span aria-hidden="true" className="empty-icon"><LeagueIcon /></span>

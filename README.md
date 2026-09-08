@@ -91,7 +91,13 @@ Auth0 token nor the FastAPI session is exposed to browser JavaScript.
 npm run lint
 npm run typecheck
 npm run build
+npm run check:client-boundary
+npm run test:e2e
 ```
+
+The browser suite uses a deterministic local FastAPI fixture and a production
+Next.js build. Install Chromium once on a new development machine with
+`npx playwright install chromium`.
 
 ## Deployment status
 

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { connection } from "next/server";
 
 import { ArrowIcon, IntelligenceIcon, LeagueIcon, PulseIcon } from "@/components/icons";
+import { RefreshLeagueForm } from "@/components/refresh-league-form";
 import { SectionPage } from "@/components/section-page";
 import type { Recommendation } from "@/lib/api/contracts";
 import { getRecommendationSnapshot } from "@/lib/api/server";
@@ -18,6 +19,7 @@ function queryValue(value: string | string[] | undefined) {
 
 function RecommendationCard({ recommendation, rank }: { recommendation: Recommendation; rank: number }) {
   const newsSummary = recommendation.player_signal?.summary;
+  const rivals = recommendation.top_rivals;
 
   return (
     <article className="recommendation-card panel">
@@ -48,6 +50,23 @@ function RecommendationCard({ recommendation, rank }: { recommendation: Recommen
             </div>
           </div>
         ) : null}
+        {rivals.length > 0 ? (
+          <details className="rival-details">
+            <summary>
+              Modeled fit for {recommendation.rivals_actionable_count} rival {recommendation.rivals_actionable_count === 1 ? "team" : "teams"}
+              <span>View context</span>
+            </summary>
+            <p className="rival-disclaimer">Roster fit indicates possible competition, not actual claim intent.</p>
+            <ul>
+              {rivals.map((rival) => (
+                <li key={`${rival.team_name}:${rival.reason}`}>
+                  <div><strong>{rival.team_name}</strong><span>{signedPoints(rival.lineup_gain)} pts/wk</span></div>
+                  <p>{rival.reason}</p>
+                </li>
+              ))}
+            </ul>
+          </details>
+        ) : null}
       </div>
       <dl className="impact-metrics">
         <div><dt>Next-week impact</dt><dd>{signedPoints(recommendation.next_week_gain)}<span> pts</span></dd></div>
@@ -70,7 +89,12 @@ export default async function LeagueDetailPage({ params, searchParams }: PagePro
       : "The recommendation service did not return a usable league view.";
 
     return (
-      <SectionPage eyebrow={`${provider} · ${leagueId}`} title={title} description={description}>
+      <SectionPage
+        action={snapshot.status === "not-ready" ? <RefreshLeagueForm leagueId={leagueId} provider={provider} /> : undefined}
+        eyebrow={`${provider} · ${leagueId}`}
+        title={title}
+        description={description}
+      >
         <section className="panel placeholder-panel">
           <span aria-hidden="true" className="empty-icon">{snapshot.status === "not-ready" ? <LeagueIcon /> : <PulseIcon />}</span>
           <h2>{snapshot.status === "not-ready" ? "Recommendations Aren’t Ready Yet" : "Recommendation Data Is Unavailable"}</h2>
@@ -103,7 +127,7 @@ export default async function LeagueDetailPage({ params, searchParams }: PagePro
   const teamName = view.target_strength.team_name;
 
   return (
-    <SectionPage eyebrow={`${data.provider} · ${data.league.season} · Week ${data.week}`} title={data.league.name} description={`Recommendations for ${teamName}, calibrated to this league’s scoring, rosters, and available players.`}>
+    <SectionPage action={<RefreshLeagueForm leagueId={leagueId} provider={provider} />} eyebrow={`${data.provider} · ${data.league.season} · Week ${data.week}`} title={data.league.name} description={`Recommendations for ${teamName}, calibrated to this league’s scoring, rosters, and available players.`}>
       <section aria-label="Recommendation context" className="recommendation-overview panel">
         <div><span>Team</span><strong>{teamName}</strong></div>
         <div><span>Strongest need</span><strong>{view.strongest_need}</strong></div>
