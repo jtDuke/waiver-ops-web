@@ -15,10 +15,9 @@ long-running FastAPI web service, health checks, custom domains, managed TLS,
 and deploys from the existing GitHub repository. The API remains containerized
 and portable; changing Python hosts later does not change the browser contract.
 
-Do not start the production deployment until the `api/production-runtime` work
-in [NEXTJS_LAUNCH_PLAN.md](NEXTJS_LAUNCH_PLAN.md) has added the production
-container/Render definition, API-only dependencies, startup validation, and
-observability.
+The repository-side production runtime is complete. Do not start account-side
+deployment until both repositories' CI checks are green on the intended
+commits.
 
 ## Accounts and values needed once
 
@@ -63,6 +62,8 @@ npm install
 npm run lint
 npm run typecheck
 npm run build
+npm run check:client-boundary
+npm run test:e2e
 ```
 
 From `waiver_priority`:
@@ -72,7 +73,8 @@ From `waiver_priority`:
 ```
 
 Run `npm run dev:stack` and manually complete the launch flow before touching
-production configuration. The final launch gate will also include Playwright.
+production configuration. Playwright covers the deterministic launch journey;
+Auth0 and Yahoo callbacks still require hosted smoke tests.
 
 ## 2. Prepare Neon
 
@@ -119,11 +121,9 @@ it does not need the Auth0 client secret.
 
 ## 4. Deploy FastAPI on Render
 
-After the production-runtime files exist:
-
 1. In Render, create a Web Service from `jtDuke/waiver-ops` and select `main`.
-2. Use the repository's committed Docker/Blueprint configuration. The service
-   command must ultimately bind Uvicorn to `0.0.0.0:$PORT`.
+2. Choose the committed `render.yaml` Blueprint. It builds the API-only
+   `Dockerfile` and binds Uvicorn to `0.0.0.0:$PORT`.
 3. Set the HTTP health-check path to `/health/ready`.
 4. Disable automatic database creation.
 5. Add the production environment variables below in Render's Environment
@@ -204,6 +204,11 @@ domain in both Yahoo and Render's `YAHOO_REDIRECT_URI`, then change both to
 None of these names may start with `NEXT_PUBLIC_`. Trigger a new deployment
 after changing environment variables; existing deployments do not acquire new
 values automatically.
+
+Keep Vercel's automatic system environment variables enabled. The prebuild
+guard uses `VERCEL=1` to reject missing Auth0/API configuration, insecure
+origins, weak cookie secrets, and browser-exposed secret variable names before
+Next.js compiles.
 
 Use the Vercel-assigned production URL for the initial smoke test. Add that
 exact URL to Auth0 and Render CORS only for the duration of the test. A normal

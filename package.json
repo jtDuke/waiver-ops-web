@@ -5,12 +5,14 @@
   "scripts": {
     "dev": "next dev",
     "dev:stack": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/dev-stack.ps1",
+    "prebuild": "node scripts/check-hosted-config.mjs",
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",
     "typecheck": "next typegen && tsc --noEmit",
     "test:e2e": "playwright test",
-    "check:client-boundary": "node scripts/check-client-boundary.mjs"
+    "check:client-boundary": "node scripts/check-client-boundary.mjs",
+    "check:hosted-config": "node scripts/check-hosted-config.mjs"
   },
   "dependencies": {
     "@auth0/nextjs-auth0": "^4.29.0",

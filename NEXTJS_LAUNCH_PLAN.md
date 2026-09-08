@@ -131,6 +131,13 @@ critical Playwright flows pass in CI.
 
 ### Phase 3 — Make FastAPI production-ready
 
+Status: **repository implementation complete.** `waiver-ops` now has an
+API-only dependency set, a non-root Python 3.11 container, a Render Blueprint,
+hosted configuration validation, JSON request logs and request IDs, health
+probes, graceful shutdown, CORS/cookie security tests, and a CI job that imports
+and tests FastAPI without Streamlit before building the Linux image. Live-host
+and isolated-Neon smoke checks remain part of Phase 4.
+
 - Package the Python runtime around `waiver_api`; keep recommendation and
   provider modules independent of both web frameworks.
 - Add a production container and an explicit process command with bounded
@@ -153,6 +160,11 @@ Exit gate: the hosted API passes health, contract, security, and representative
 league smoke tests without Streamlit installed in that runtime.
 
 ### Phase 4 — Deploy the replacement stack
+
+Status: **ready for account-side configuration.** Vercel builds now fail early
+when the hosted API/Auth0/origin contract is absent or unsafe. Creating the
+Render, Vercel, and Auth0 resources and changing DNS require the owner's hosted
+accounts and production values.
 
 1. Deploy FastAPI to the selected managed Python container host and attach
    `api.waiverops.com`.

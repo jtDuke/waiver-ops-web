@@ -92,6 +92,7 @@ npm run lint
 npm run typecheck
 npm run build
 npm run check:client-boundary
+npm run check:hosted-config
 npm run test:e2e
 ```
 
@@ -101,6 +102,9 @@ Next.js build. Install Chromium once on a new development machine with
 
 ## Deployment status
 
-This repository is not yet deployed. It is the only target for new product UI
-work. Streamlit is frozen and will be removed after the production acceptance
-checks in the launch plan; it is not the long-term rollback path.
+The application and API repositories are deployment-ready but have not yet
+been connected to Vercel, Render, Auth0, and the production domains. Vercel
+builds run a hosted-configuration guard before Next.js compilation; keep
+system environment variables enabled so `VERCEL=1` is available. Streamlit is
+frozen and will be removed after the production acceptance checks in the
+launch plan; it is not the rollback path.
