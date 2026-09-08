@@ -4,7 +4,7 @@ import { NextResponse } from "next/server";
 import { getAuth0Client } from "@/lib/auth/auth0";
 import { auth0Enabled } from "@/lib/auth/config";
 
-const PUBLIC_PATHS = new Set(["/privacy"]);
+const PUBLIC_PATHS = new Set(["/", "/privacy", "/terms"]);
 
 export async function proxy(request: NextRequest) {
   if (!auth0Enabled()) {

@@ -1,7 +1,7 @@
 import { expect, test } from "@playwright/test";
 
 test("advertises only complete launch destinations", async ({ page }) => {
-  await page.goto("/");
+  await page.goto("/dashboard");
 
   const navigation = page.getByRole("navigation", { name: "Primary" });
   await expect(navigation.getByRole("link", { name: "Dashboard" })).toBeVisible();
@@ -9,6 +9,28 @@ test("advertises only complete launch destinations", async ({ page }) => {
   await expect(navigation.getByRole("link", { name: "Settings" })).toHaveCount(0);
   await expect(navigation.getByRole("link", { name: "Intelligence" })).toHaveCount(0);
   await expect(page.getByRole("link", { name: "Open a Recommendation Board" })).toHaveAttribute("href", "/leagues");
+});
+
+test("publishes a public home page and legal disclosures", async ({ page }) => {
+  await page.goto("/");
+
+  await expect(page.getByRole("heading", { name: "Know why before you claim." })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Open dashboard" }).first()).toHaveAttribute(
+    "href",
+    "/dashboard",
+  );
+  await expect(page.getByRole("link", { name: "Privacy" }).first()).toHaveAttribute(
+    "href",
+    "/privacy",
+  );
+
+  await page.goto("/privacy");
+  await expect(page.getByRole("heading", { name: "Privacy Policy" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Google user data" })).toBeVisible();
+  await expect(page.getByText("jtrygg@gmail.com").first()).toBeVisible();
+
+  await page.goto("/terms");
+  await expect(page.getByRole("heading", { name: "Terms of Service" })).toBeVisible();
 });
 
 test("redirects retired placeholder routes to useful live surfaces", async ({ page }) => {

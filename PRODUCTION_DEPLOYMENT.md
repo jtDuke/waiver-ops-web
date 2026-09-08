@@ -218,10 +218,22 @@ random preview to production Neon or add wildcard Auth0 callbacks.
 ## 7. Attach `waiverops.com`
 
 In the Vercel project, open **Settings → Domains** and add
-`waiverops.com` (and `www.waiverops.com` if desired). Vercel will display the
-exact A/CNAME/TXT records required. Because DNS may be hosted elsewhere, add
-those exact records at the current DNS provider rather than copying generic
-values from an old guide.
+`waiverops.com` and `www.waiverops.com`. Make `waiverops.com` the primary
+domain and redirect `www` to the apex domain. Vercel will display the exact
+A/CNAME/TXT records required.
+
+DNS for this project is managed in Cloudflare. In Cloudflare, select the
+`waiverops.com` zone and open **DNS → Records**. Add the exact records shown by
+Vercel. Do not copy generic targets from an old guide. For any Vercel A or
+CNAME record, begin with **Proxy status: DNS only** so Vercel can validate DNS
+and issue its certificate without another proxy obscuring the target. TXT
+verification records are never proxied. Preserve unrelated mail and ownership
+records. Do not change the domain's nameservers.
+
+If the apex already has an A, AAAA, or CNAME record, identify what it serves
+before replacing it. The website cutover replaces only records that conflict
+with Vercel's required `@` or `www` records. Verify both domains in Vercel and
+confirm HTTPS works before changing authentication callbacks.
 
 After Vercel verifies the domain and provisions TLS:
 
@@ -231,6 +243,47 @@ After Vercel verifies the domain and provisions TLS:
 4. Update Yahoo and Render `YAHOO_REDIRECT_URI` to the final callback.
 5. Confirm `https://waiverops.com/auth/login` returns through
    `https://waiverops.com/auth/callback`.
+
+### Google OAuth branding and domain ownership
+
+The public home, privacy, and terms routes must be deployed before completing
+Google's branding form. Use these exact values:
+
+| Google field | Value |
+| --- | --- |
+| App name | `WaiverOps` |
+| User support email | `jtrygg@gmail.com` |
+| Application home page | `https://waiverops.com` |
+| Application privacy policy link | `https://waiverops.com/privacy` |
+| Application terms of service link | `https://waiverops.com/terms` |
+| Authorized domains | `waiverops.com`, `auth0.com` |
+| Developer contact email | `jtrygg@gmail.com` |
+
+Google's homepage must remain public and must not redirect to Auth0. The
+authenticated application begins at `/dashboard`.
+
+Before Google accepts `waiverops.com` as an authorized domain, verify domain
+ownership in Google Search Console using the same Google account that owns or
+edits the OAuth project:
+
+1. Add a **Domain** property for `waiverops.com` in Search Console.
+2. Copy the `google-site-verification=...` TXT value Google displays.
+3. In Cloudflare **DNS → Records**, add a TXT record with name `@` and that
+   complete value. Leave the TTL on Auto.
+4. Return to Search Console and choose **Verify**. Keep the TXT record after
+   verification.
+
+Auth0's Google social connection continues to use Auth0's callback URI. In the
+Google OAuth client's **Authorized redirect URIs**, keep the exact Auth0 tenant
+callback, currently:
+
+```text
+https://dev-ebjyyl6erwqmcxea.us.auth0.com/login/callback
+```
+
+Do not add `https://waiverops.com/auth/callback` to the Google client. That is
+the callback between Auth0 and WaiverOps; the Google-to-Auth0 callback is the
+Auth0 tenant URL above.
 
 ## 8. Production acceptance checklist
 
@@ -287,10 +340,14 @@ After the one-time setup, each normal release is shorter:
 - [Vercel deployment environments](https://vercel.com/docs/deployments/environments)
 - [Vercel environment variables](https://vercel.com/docs/environment-variables)
 - [Vercel custom-domain setup](https://vercel.com/docs/domains/set-up-custom-domain)
+- [Cloudflare DNS records](https://developers.cloudflare.com/dns/manage-dns-records/how-to/create-dns-records/)
+- [Cloudflare proxy status](https://developers.cloudflare.com/dns/proxy-status/)
 - [Render FastAPI deployment](https://render.com/docs/deploy-fastapi)
 - [Render health checks](https://render.com/docs/health-checks)
 - [Render custom domains](https://render.com/docs/custom-domains)
 - [Neon connection pooling](https://neon.com/docs/connect/connection-pooling)
 - [Auth0 Next.js quickstart](https://auth0.com/docs/quickstart/webapp/nextjs)
+- [Google OAuth app branding](https://support.google.com/cloud/answer/15549049)
+- [Google OAuth homepage requirements](https://support.google.com/cloud/answer/13807376)
 - [Yahoo OAuth setup](https://developer.yahoo.com/oauth2/guide/openid_connect/getting_started.html)
 

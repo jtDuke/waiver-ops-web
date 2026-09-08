@@ -36,9 +36,9 @@ export function safeReturnTo(value: string | null | undefined): string {
     value.startsWith("//") ||
     value.includes("\\")
   ) {
-    return "/";
+    return "/dashboard";
   }
   const base = "https://waiverops.invalid";
   const parsed = new URL(value, base);
-  return parsed.origin === base ? `${parsed.pathname}${parsed.search}` : "/";
+  return parsed.origin === base ? `${parsed.pathname}${parsed.search}` : "/dashboard";
 }

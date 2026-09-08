@@ -25,7 +25,7 @@ export default function ProductError({
         <p>Your data was not changed. Retry the request, or return to the dashboard if the service is still recovering.</p>
         <div className="auth-state-actions">
           <button className="button primary-button" onClick={reset} type="button">Try Again</button>
-          <Link className="button secondary-button" href="/">Dashboard</Link>
+          <Link className="button secondary-button" href="/dashboard">Dashboard</Link>
         </div>
       </section>
     </div>

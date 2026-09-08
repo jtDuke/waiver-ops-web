@@ -30,7 +30,9 @@ Then use one command whenever you want to run the complete local application:
 npm run dev:stack
 ```
 
-Open `http://localhost:3000`. Press `Ctrl+C` once to stop both processes. The
+Open `http://localhost:3000` for the public site or
+`http://localhost:3000/dashboard` for the signed-in product. Press `Ctrl+C`
+once to stop both processes. The
 launcher reuses an API already running on port 8000; otherwise it starts the
 sibling service, waits for its health check, and shuts it down with Next.js.
 Backend startup logs are kept under `.devlogs/` if troubleshooting is needed.
@@ -76,6 +78,13 @@ Auth0 token nor the FastAPI session is exposed to browser JavaScript.
    `https://<web-domain>/connections/yahoo/callback`. Next.js forwards the
    validated callback to FastAPI using the server-side application session.
 
+The production public URLs are:
+
+- home: `https://waiverops.com`
+- privacy: `https://waiverops.com/privacy`
+- terms: `https://waiverops.com/terms`
+- signed-in product: `https://waiverops.com/dashboard`
+
 ## Architecture boundary
 
 - Browser code never receives database credentials or provider tokens.
@@ -102,9 +111,14 @@ Next.js build. Install Chromium once on a new development machine with
 
 ## Deployment status
 
-The application and API repositories are deployment-ready but have not yet
-been connected to Vercel, Render, Auth0, and the production domains. Vercel
-builds run a hosted-configuration guard before Next.js compilation; keep
-system environment variables enabled so `VERCEL=1` is available. Streamlit is
-frozen and will be removed after the production acceptance checks in the
-launch plan; it is not the rollback path.
+The Next.js application is deployed at
+`https://waiver-ops-web.vercel.app`, the FastAPI service is deployed at
+`https://waiver-ops-api.onrender.com`, and Auth0 sign-in has passed an
+end-to-end hosted smoke test. The remaining cutover work is attaching
+`waiverops.com`, applying the final-domain environment and callback values,
+and running the production acceptance checklist.
+
+Vercel builds run a hosted-configuration guard before Next.js compilation;
+keep system environment variables enabled so `VERCEL=1` is available.
+Streamlit is frozen and will be removed after the production acceptance checks
+in the launch plan; it is not the rollback path.

@@ -13,12 +13,21 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://waiverops.com"),
   title: {
     default: "Waiver Ops",
     template: "%s | Waiver Ops",
   },
   description:
     "League-aware fantasy football recommendations backed by cross-source player intelligence.",
+  openGraph: {
+    type: "website",
+    siteName: "Waiver Ops",
+    title: "Waiver Ops",
+    description:
+      "League-aware fantasy football recommendations backed by cross-source player intelligence.",
+    url: "/",
+  },
 };
 
 export const viewport: Viewport = {

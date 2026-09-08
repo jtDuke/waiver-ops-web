@@ -12,7 +12,7 @@ export async function AppShell({ children }: { children: React.ReactNode }) {
   return (
     <div className="app-shell">
       <aside className="sidebar">
-        <Link aria-label="Waiver Ops dashboard" className="brand" href="/">
+        <Link aria-label="Waiver Ops dashboard" className="brand" href="/dashboard">
           <span aria-hidden="true" className="brand-mark">W</span>
           <span className="brand-copy"><strong>Waiver Ops</strong><small>Decision intelligence</small></span>
         </Link>
@@ -29,7 +29,7 @@ export async function AppShell({ children }: { children: React.ReactNode }) {
       </aside>
       <div className="content-column">
         <header className="mobile-header">
-          <Link aria-label="Waiver Ops dashboard" className="brand" href="/">
+          <Link aria-label="Waiver Ops dashboard" className="brand" href="/dashboard">
             <span aria-hidden="true" className="brand-mark">W</span>
             <span className="brand-copy"><strong>Waiver Ops</strong></span>
           </Link>
