@@ -54,9 +54,12 @@ Known launch gaps:
 - Settings and top-level intelligence are intentionally excluded from the MVP
   navigation; old route bookmarks redirect to live connection and league
   surfaces.
-- Manual refresh has no complete user feedback loop.
-- Rival-interest data is not fully presented in Next.js.
-- Critical authenticated browser flows do not yet have Playwright coverage.
+- Yahoo-specific acceptance is deferred while Yahoo reviews the Fantasy Sports
+  API application.
+- The retired Streamlit Community Cloud service and its secrets still require
+  manual shutdown; it is not a product fallback.
+- Production performance telemetry needs an observation window after the
+  recommendation-v8 deployment so cache sizing is based on real traffic.
 - Vercel, Render, Auth0, the production domain, CORS, secure sessions, and Neon
   are deployed and have passed the authenticated hosted smoke test.
 - Sleeper connection and league loading are live. Yahoo-specific acceptance is
@@ -225,6 +228,46 @@ Operationally:
 Exit gate: no Streamlit source, dependency, configuration, deployment, secret,
 or documentation remains on `main`, and both local and hosted product flows use
 Next.js → FastAPI exclusively.
+
+### Phase 6 — Performance-first recommendation experience
+
+Status: **implemented; production rollout and observation pending.**
+
+This phase is a release gate for usability, not deferred optimization:
+
+- Measure each recommendation stage and expose safe `Server-Timing`, cache
+  status, response size, and request IDs for diagnosis.
+- Cache complete recommendation snapshots in a bounded process cache and a
+  tenant-isolated Postgres cache. Keys include source data, engine version, and
+  intelligence revision; refresh invalidates both layers.
+- Reuse provider connections, bound shared registries, close resources on
+  shutdown, gzip large payloads, and reject unprojected candidates before the
+  expensive add/drop search.
+- Render truthful five-stage progress through an authenticated same-origin
+  adapter. Delay it briefly to avoid cache-hit flicker, keep the layout stable,
+  provide an honest long-wait message, and respect reduced motion.
+- Show only meaningful net add/drop actions in the primary board. Put marginal
+  positive moves in collapsed Small Edges, and group trends, transactions, and
+  rival opportunities in collapsed League Pulse.
+
+Measured local baselines are roughly 1.3–1.9 seconds cold and 1–11 milliseconds
+for a warm in-process hit. The largest sampled response compresses from 1.24 MB
+to 86 KB. A 500-request instrumented warm-cache run retained less than the
+10 MB allocation budget.
+
+Release order:
+
+1. Validate the additive recommendation-cache migration and tenant isolation
+   on an expiring Neon branch.
+2. Pass Python tests, lint, type checking, production build, and Playwright.
+3. Apply the migration to production before deploying FastAPI.
+4. Deploy FastAPI, then Next.js; smoke-test a real Sleeper league, refresh,
+   progress, cache headers, Small Edges, League Pulse, and cross-tenant denial.
+5. Observe p50/p95 stage timings, hit rate, error rate, memory, and compressed
+   response size for at least one normal usage window before tuning limits.
+
+Rollback uses the previous Render and Vercel deployments. The additive cache
+table may remain; it is not read by the previous release.
 
 ## Pull-request sequence
 

@@ -9,6 +9,7 @@ let preferences = {
 };
 let refreshCount = 0;
 let sleeperConnected = true;
+let recommendationStartedAt = 0;
 
 const leagues = [
   {
@@ -53,6 +54,22 @@ function recommendation(overrides) {
     status: "Active",
     lineup_gain: 1.4,
     next_week_gain: 2.1,
+    gross_lineup_gain: 1.8,
+    gross_next_week_gain: 2.5,
+    net_lineup_gain: 1.4,
+    net_next_week_gain: 2.1,
+    net_weekly_gains: { 1: 2.1, 2: 1.2, 3: 0.8 },
+    drop_cost: 0.4,
+    drop_confidence: "high",
+    recommended_drop: {
+      player_id: "drop-1",
+      name: "Bench Example",
+      position: "WR",
+      team: "SEA",
+      horizon_projection: 4.2,
+      net_lineup_gain: 1.4,
+    },
+    alternative_drops: [],
     horizon_projection: 31.2,
     next_projection: 11.4,
     fit_tier: "Good fit",
@@ -92,6 +109,12 @@ const recommendations = [
     signal_confidence: 0,
     rivals_actionable_count: 0,
     top_rivals: [],
+    fit_tier: "Small edge",
+    lineup_gain: 0.6,
+    next_week_gain: 0.8,
+    net_lineup_gain: 0.6,
+    net_next_week_gain: 0.8,
+    net_weekly_gains: { 1: 0.8, 2: 0.6, 3: 0.4 },
   }),
 ];
 
@@ -187,7 +210,26 @@ const server = createServer(async (request, response) => {
   if (pathname === "/api/v1/leagues/sleeper/forbidden/recommendations") {
     return json(response, 403, { detail: "League is not owned by this user." });
   }
+  if (pathname === "/api/v1/leagues/sleeper/league-1/recommendation-progress") {
+    const stages = [
+      "Checking saved analysis",
+      "Loading league and rosters",
+      "Loading projections and intelligence",
+      "Evaluating add/drop pairs",
+      "Preparing the priority board",
+    ];
+    const elapsed = recommendationStartedAt ? Date.now() - recommendationStartedAt : 0;
+    const step = Math.min(4, Math.floor(elapsed / 900));
+    return json(response, 200, {
+      step,
+      total_steps: 5,
+      message: stages[step],
+      complete: false,
+      failed: false,
+    });
+  }
   if (pathname === "/api/v1/leagues/sleeper/league-1/recommendations") {
+    recommendationStartedAt = Date.now();
     await new Promise((resolve) => setTimeout(resolve, 4_500));
     return json(response, 200, {
       provider: "sleeper",
@@ -205,9 +247,31 @@ const server = createServer(async (request, response) => {
           league_size: 12,
         },
         strongest_need: "WR",
+        roster_assessment: {
+          weakest_position: "WR",
+          weakness_score: 0.7,
+          weakness_explanation: "WR grades furthest below this league's roster-count and projected-quality medians.",
+          best_waiver_opportunity: {
+            player_id: "player-1",
+            name: "Jordan Example",
+            position: "WR",
+            net_lineup_gain: 1.4,
+            tier: "Useful move",
+          },
+        },
         recommendations,
-        direct_recommendations: recommendations,
+        direct_recommendations: [recommendations[0]],
+        primary_recommendations: [recommendations[0]],
+        watchlist_recommendations: [recommendations[1]],
         strategic_adds: [],
+      },
+      league_pulse: {
+        lookback_hours: 24,
+        market_status: "ready",
+        activity_status: "ready",
+        market_trends: [{ player_id: "trend-1", name: "Trending Player", position: "RB", team: "GB", adds: 1834 }],
+        league_activity: [],
+        rival_opportunities: [{ player_id: "rival-1", name: "Rival Target", position: "TE", team: "BAL", best_rival_gain: 2.4, rival_teams_helped: 2, top_teams: ["Fourth and Long"] }],
       },
       source_warnings: [],
       intelligence: {

@@ -12,6 +12,7 @@ import {
   preferencesResponseSchema,
   providerSchema,
   recommendationResponseSchema,
+  recommendationProgressResponseSchema,
   refreshResponseSchema,
   sessionResponseSchema,
   yahooCallbackResponseSchema,
@@ -22,13 +23,14 @@ import {
   type ProviderConnection,
   type PreferencesResponse,
   type RecommendationSnapshot,
+  type RecommendationProgress,
   type RefreshResponse,
 } from "@/lib/api/contracts";
 
 const LOCAL_API_URL = "http://127.0.0.1:8000";
 const REQUEST_TIMEOUT_MS = 4_000;
 const PROVIDER_MUTATION_TIMEOUT_MS = 20_000;
-const RECOMMENDATION_REQUEST_TIMEOUT_MS = 20_000;
+const RECOMMENDATION_REQUEST_TIMEOUT_MS = 45_000;
 
 export class ApiRequestError extends Error {
   constructor(message: string, readonly status?: number) {
@@ -192,6 +194,23 @@ export async function getRecommendationSnapshot(
         : "The application API is currently unreachable.";
     return { status: "unavailable", reason };
   }
+}
+
+export async function getRecommendationProgress(
+  providerValue: string,
+  leagueId: string,
+): Promise<RecommendationProgress> {
+  const provider = providerSchema.safeParse(providerValue);
+  const baseUrl = getApiBaseUrl();
+  if (!provider.success || !leagueId.trim() || !baseUrl) {
+    throw new ApiRequestError("This league address is invalid.");
+  }
+  return requestApi(
+    baseUrl,
+    `/api/v1/leagues/${provider.data}/${encodeURIComponent(leagueId)}/recommendation-progress`,
+    (await cookies()).toString(),
+    recommendationProgressResponseSchema,
+  );
 }
 
 export async function exchangeApiSession(idToken: string): Promise<string> {

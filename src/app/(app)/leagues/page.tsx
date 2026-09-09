@@ -21,6 +21,7 @@ function LeagueCard({ league, isDefault }: { league: League; isDefault: boolean 
     <Link
       className="league-card panel"
       href={`/leagues/${league.provider}/${league.league_id}`}
+      prefetch={false}
     >
       <div className="league-card-topline">
         <span aria-hidden="true" className={`provider-mark ${league.provider}`}>

@@ -139,6 +139,25 @@ export const recommendationItemSchema = z
     completeness_notes: z.array(z.string()),
     rivals_actionable_count: z.number().int().nonnegative().default(0),
     top_rivals: z.array(rivalFitSchema).default([]),
+    gross_lineup_gain: z.number().nullable().optional(),
+    gross_next_week_gain: z.number().nullable().optional(),
+    net_lineup_gain: z.number().nullable().optional(),
+    net_next_week_gain: z.number().nullable().optional(),
+    net_weekly_gains: z.record(z.string(), z.number()).default({}),
+    drop_cost: z.number().nullable().optional(),
+    drop_confidence: z.enum(["not_required", "high", "medium", "review"]).optional(),
+    recommended_drop: z
+      .object({
+        player_id: z.string(),
+        name: z.string(),
+        position: z.string(),
+        team: z.string().nullable().optional(),
+        horizon_projection: z.number().nullable().optional(),
+        net_lineup_gain: z.number().nullable().optional(),
+      })
+      .nullable()
+      .optional(),
+    alternative_drops: z.array(z.record(z.string(), z.unknown())).default([]),
   })
   .passthrough();
 
@@ -156,7 +175,25 @@ const recommendationViewSchema = z
     strongest_need: z.string(),
     recommendations: z.array(recommendationItemSchema),
     direct_recommendations: z.array(recommendationItemSchema),
+    primary_recommendations: z.array(recommendationItemSchema).optional(),
+    watchlist_recommendations: z.array(recommendationItemSchema).default([]),
     strategic_adds: z.array(recommendationItemSchema),
+    roster_assessment: z
+      .object({
+        weakest_position: z.string().nullable(),
+        weakness_score: z.number().nullable(),
+        weakness_explanation: z.string(),
+        best_waiver_opportunity: z
+          .object({
+            player_id: z.string(),
+            name: z.string(),
+            position: z.string(),
+            net_lineup_gain: z.number().nullable(),
+            tier: z.string(),
+          })
+          .nullable(),
+      })
+      .optional(),
   })
   .passthrough();
 
@@ -182,6 +219,69 @@ export const recommendationResponseSchema = z.object({
   recommendation_view: recommendationViewSchema.nullable(),
   source_warnings: z.array(z.record(z.string(), z.unknown())),
   intelligence: intelligenceStatusSchema,
+  league_pulse: z
+    .object({
+      lookback_hours: z.number().int().positive(),
+      market_status: z.enum(["ready", "unavailable"]).default("unavailable"),
+      activity_status: z.enum(["ready", "unavailable"]).default("unavailable"),
+      market_trends: z.array(
+        z.object({
+          player_id: z.string(),
+          name: z.string(),
+          position: z.string(),
+          team: z.string().nullable(),
+          adds: z.number().int().nonnegative(),
+        }),
+      ),
+      league_activity: z.array(
+        z.object({
+          transaction_id: z.string(),
+          type: z.string(),
+          created: z.unknown().nullable().optional(),
+          adds: z.array(z.record(z.string(), z.unknown())),
+          drops: z.array(z.record(z.string(), z.unknown())),
+        }),
+      ),
+      rival_opportunities: z.array(
+        z.object({
+          player_id: z.string(),
+          name: z.string(),
+          position: z.string(),
+          team: z.string().nullable(),
+          best_rival_gain: z.number(),
+          rival_teams_helped: z.number().int().nonnegative(),
+          top_teams: z.array(z.string()),
+        }),
+      ),
+    })
+    .default({
+      lookback_hours: 24,
+      market_status: "unavailable",
+      activity_status: "unavailable",
+      market_trends: [],
+      league_activity: [],
+      rival_opportunities: [],
+    }),
+  meta: z
+    .object({
+      engine_version: z.string(),
+      generated_at: z.iso.datetime({ offset: true }),
+      cache_status: z.enum(["hit", "miss", "stale"]),
+      cache_age_seconds: z.number().nonnegative(),
+      cache_layer: z.enum(["memory", "postgres", "computed"]),
+      source_fingerprint: z.string(),
+      timings_ms: z.record(z.string(), z.number()),
+    })
+    .nullable()
+    .optional(),
+});
+
+export const recommendationProgressResponseSchema = z.object({
+  step: z.number().int().min(0).max(5),
+  total_steps: z.number().int().positive(),
+  message: z.string(),
+  complete: z.boolean(),
+  failed: z.boolean(),
 });
 
 export type MeResponse = z.infer<typeof meResponseSchema>;
@@ -192,6 +292,7 @@ export type ProviderConnection = z.infer<typeof providerConnectionSchema>;
 export type PlayerIntelligenceResponse = z.infer<typeof playerIntelligenceResponseSchema>;
 export type PreferencesResponse = z.infer<typeof preferencesResponseSchema>;
 export type RefreshResponse = z.infer<typeof refreshResponseSchema>;
+export type RecommendationProgress = z.infer<typeof recommendationProgressResponseSchema>;
 
 export type DashboardSnapshot =
   | {

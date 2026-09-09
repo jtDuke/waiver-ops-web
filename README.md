@@ -121,3 +121,17 @@ Vercel builds run a hosted-configuration guard before Next.js compilation;
 keep system environment variables enabled so `VERCEL=1` is available. The
 Python repository is API-only; its final legacy UI revision is preserved by the
 `streamlit-final` Git tag and is not the rollback path.
+
+## Recommendation performance
+
+The recommendation route uses a stable progressive loading surface backed by
+an authenticated same-origin progress endpoint. Cached responses avoid the
+loader flash; cold requests show truthful backend stages and a long-wait
+message instead of cycling skeleton containers.
+
+The priority board contains meaningful net add/drop actions. Marginal positive
+moves are collapsed under Small Edges, while market trends, league
+transactions, and rival opportunities are collapsed under League Pulse. See
+the performance-first Phase 6 in
+[NEXTJS_LAUNCH_PLAN.md](NEXTJS_LAUNCH_PLAN.md) for measured baselines, release
+gates, production monitoring, and rollback.

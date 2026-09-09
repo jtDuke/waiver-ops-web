@@ -65,13 +65,24 @@ test("saves a default league and completes the waiver decision flow", async ({ p
   await expect(page.getByText("Default", { exact: true })).toBeVisible();
 
   await page.getByRole("link", { name: /Sunday Strategy/ }).click();
+  await expect(page.getByRole("heading", { name: "Building Your Priority Board" })).toBeVisible();
+  await expect(page.getByText("Checking saved analysis", { exact: true }).first()).toBeVisible();
   await expect(page.getByRole("heading", { name: "Best Moves for This Roster" })).toBeVisible({ timeout: 10_000 });
   await expect(page.getByRole("heading", { name: "Jordan Example" })).toBeVisible();
   await expect(page.getByText("Meaningful news", { exact: true })).toBeVisible();
+  await expect(page.locator(".recommendation-card").first().getByText(/Review dropping Bench Example/)).toBeVisible();
 
-  await page.getByText(/Modeled fit for 1 rival team/).click();
+  await page.locator(".secondary-board > summary").click();
+  await expect(page.getByRole("heading", { name: "Casey Baseline" })).toBeVisible();
+
+  await page.locator(".league-pulse > summary").click();
+  await expect(page.getByText("Trending Player", { exact: true })).toBeVisible();
+  await expect(page.getByText("Rival Target", { exact: true })).toBeVisible();
+
+  await page.locator(".recommendation-card .move-details > summary").first().click();
+  await expect(page.getByText(/Modeled fit for 1 rival team/)).toBeVisible();
   await expect(page.getByText("Fourth and Long")).toBeVisible();
-  await expect(page.getByText(/not actual claim intent/)).toBeVisible();
+  await expect(page.getByText(/not claim intent/)).toBeVisible();
 
   await page.getByRole("button", { name: "Refresh league" }).click();
   await expect(page.getByText(/League data refreshed|already current/)).toBeVisible();
@@ -82,6 +93,7 @@ test("saves a default league and completes the waiver decision flow", async ({ p
   await expect(page.getByRole("heading", { name: "Jordan Example" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Casey Baseline" })).toHaveCount(0);
 
+  await page.locator(".recommendation-card .move-details > summary").first().click();
   await page.getByRole("link", { name: "Read ranked evidence" }).click();
   await expect(page.getByRole("heading", { name: /Jordan Example/ })).toBeVisible();
   await expect(page.getByText("The player worked with the first-team offense throughout the week.")).toBeVisible();
