@@ -27,6 +27,7 @@ import {
 
 const LOCAL_API_URL = "http://127.0.0.1:8000";
 const REQUEST_TIMEOUT_MS = 4_000;
+const PROVIDER_MUTATION_TIMEOUT_MS = 20_000;
 
 export class ApiRequestError extends Error {
   constructor(message: string, readonly status?: number) {
@@ -48,7 +49,11 @@ async function requestApi<T>(
   path: string,
   cookieHeader: string,
   schema: ZodType<T>,
-  options: { method?: "GET" | "POST" | "PATCH" | "DELETE"; body?: unknown } = {},
+  options: {
+    method?: "GET" | "POST" | "PATCH" | "DELETE";
+    body?: unknown;
+    timeoutMs?: number;
+  } = {},
 ): Promise<T> {
   const headers = new Headers();
   if (cookieHeader) {
@@ -62,14 +67,20 @@ async function requestApi<T>(
     method: options.method ?? "GET",
     headers,
     body: options.body === undefined ? undefined : JSON.stringify(options.body),
-    signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+    signal: AbortSignal.timeout(options.timeoutMs ?? REQUEST_TIMEOUT_MS),
   });
 
   if (!response.ok) {
+    const body = await response.json().catch(() => null) as unknown;
+    const detail =
+      typeof body === "object" && body !== null && "detail" in body &&
+      typeof body.detail === "string"
+        ? body.detail.trim()
+        : "";
     throw new ApiRequestError(
       response.status === 401
         ? "Your application session has expired."
-        : `The application API returned ${response.status}.`,
+        : detail || `The application API returned ${response.status}.`,
       response.status,
     );
   }
@@ -246,7 +257,11 @@ export async function connectSleeper(
     "/api/v1/connections/sleeper",
     (await cookies()).toString(),
     connectionListResponseSchema.shape.connections.element,
-    { method: "POST", body: { username, season } },
+    {
+      method: "POST",
+      body: { username, season },
+      timeoutMs: PROVIDER_MUTATION_TIMEOUT_MS,
+    },
   );
 }
 

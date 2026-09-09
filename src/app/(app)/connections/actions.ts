@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { z } from "zod";
 
 import { connectSleeper } from "@/lib/api/server";
@@ -14,11 +15,6 @@ const sleeperConnectionSchema = z.object({
 export type ConnectionActionState = {
   status: "idle" | "success" | "error";
   message: string;
-};
-
-export const initialConnectionState: ConnectionActionState = {
-  status: "idle",
-  message: "",
 };
 
 export async function connectSleeperAction(
@@ -35,18 +31,16 @@ export async function connectSleeperAction(
 
   try {
     await requireAuth0Session();
-    const connection = await connectSleeper(values.data.username, values.data.season);
-    revalidatePath("/");
-    revalidatePath("/leagues");
-    revalidatePath("/connections");
-    return {
-      status: "success",
-      message: `${connection.display_name ?? values.data.username} is connected.`,
-    };
+    await connectSleeper(values.data.username, values.data.season);
   } catch (error) {
     return {
       status: "error",
       message: error instanceof Error ? error.message : "Sleeper could not be connected.",
     };
   }
+
+  revalidatePath("/");
+  revalidatePath("/leagues");
+  revalidatePath("/connections");
+  redirect("/leagues?connected=sleeper");
 }

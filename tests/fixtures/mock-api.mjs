@@ -8,6 +8,7 @@ let preferences = {
   values: { hidden_dashboard_leagues: [] },
 };
 let refreshCount = 0;
+let sleeperConnected = true;
 
 const leagues = [
   {
@@ -115,6 +116,10 @@ const server = createServer(async (request, response) => {
   if (pathname === "/health/live" || pathname === "/health/ready") {
     return json(response, 200, { status: "ok" });
   }
+  if (pathname === "/__test__/sleeper/disconnect" && request.method === "POST") {
+    sleeperConnected = false;
+    return json(response, 200, { reset: true });
+  }
   if (pathname === "/api/v1/me") {
     return json(response, 200, {
       identity: {
@@ -126,9 +131,9 @@ const server = createServer(async (request, response) => {
       connections: [
         {
           provider: "sleeper",
-          connected: true,
-          external_account_id: "sleeper-user-1",
-          display_name: "TestManager",
+          connected: sleeperConnected,
+          external_account_id: sleeperConnected ? "sleeper-user-1" : null,
+          display_name: sleeperConnected ? "TestManager" : null,
         },
         {
           provider: "yahoo",
@@ -137,7 +142,7 @@ const server = createServer(async (request, response) => {
           display_name: null,
         },
       ],
-      league_count: leagues.length,
+      league_count: sleeperConnected ? leagues.length : 0,
     });
   }
   if (pathname === "/api/v1/connections" && request.method === "GET") {
@@ -145,9 +150,9 @@ const server = createServer(async (request, response) => {
       connections: [
         {
           provider: "sleeper",
-          connected: true,
-          external_account_id: "sleeper-user-1",
-          display_name: "TestManager",
+          connected: sleeperConnected,
+          external_account_id: sleeperConnected ? "sleeper-user-1" : null,
+          display_name: sleeperConnected ? "TestManager" : null,
         },
         {
           provider: "yahoo",
@@ -160,6 +165,8 @@ const server = createServer(async (request, response) => {
   }
   if (pathname === "/api/v1/connections/sleeper" && request.method === "POST") {
     const body = await readJson(request);
+    await new Promise((resolve) => setTimeout(resolve, 4_500));
+    sleeperConnected = true;
     return json(response, 200, {
       provider: "sleeper",
       connected: true,
@@ -168,7 +175,7 @@ const server = createServer(async (request, response) => {
     });
   }
   if (pathname === "/api/v1/leagues") {
-    return json(response, 200, { leagues });
+    return json(response, 200, { leagues: sleeperConnected ? leagues : [] });
   }
   if (pathname === "/api/v1/preferences" && request.method === "GET") {
     return json(response, 200, preferences);

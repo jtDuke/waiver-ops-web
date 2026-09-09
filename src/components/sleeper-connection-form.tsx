@@ -4,8 +4,13 @@ import { useActionState } from "react";
 
 import {
   connectSleeperAction,
-  initialConnectionState,
 } from "@/app/(app)/connections/actions";
+import type { ConnectionActionState } from "@/app/(app)/connections/actions";
+
+const initialConnectionState: ConnectionActionState = {
+  status: "idle",
+  message: "",
+};
 
 export function SleeperConnectionForm({
   connectedName,

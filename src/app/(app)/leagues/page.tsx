@@ -41,12 +41,24 @@ function LeagueCard({ league, isDefault }: { league: League; isDefault: boolean 
   );
 }
 
-export default async function LeaguesPage() {
+export default async function LeaguesPage({
+  searchParams,
+}: PageProps<"/leagues">) {
   await connection();
+  const query = await searchParams;
   const snapshot = await getDashboardSnapshot();
+  const sleeperLeagueCount =
+    snapshot.status === "ready"
+      ? snapshot.leagues.filter((league) => league.provider === "sleeper").length
+      : 0;
 
   return (
     <SectionPage eyebrow="League workspace" title="Your Leagues" description="Review each roster in its own scoring and availability context." actionHref="/connections" actionLabel="Add Connection">
+      {query.connected === "sleeper" && sleeperLeagueCount > 0 ? (
+        <div className="notice success-notice" role="status">
+          Sleeper connected. {sleeperLeagueCount} {sleeperLeagueCount === 1 ? "league" : "leagues"} loaded.
+        </div>
+      ) : null}
       {snapshot.status === "ready" && snapshot.leagues.length > 0 ? (
         <>
           <DefaultLeagueForm leagues={snapshot.leagues} preferences={snapshot.preferences} />

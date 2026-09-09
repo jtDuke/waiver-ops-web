@@ -1,5 +1,20 @@
 import { expect, test } from "@playwright/test";
 
+test.describe.configure({ mode: "serial" });
+
+test("connects Sleeper, waits for league discovery, and opens the loaded leagues", async ({ page, request }) => {
+  await request.post("http://127.0.0.1:4010/__test__/sleeper/disconnect");
+  await page.goto("/connections");
+
+  await expect(page.getByText("Not connected", { exact: true }).first()).toBeVisible();
+  await page.getByLabel("Sleeper username").fill("TestManager");
+  await page.getByRole("button", { name: "Connect" }).click();
+
+  await expect(page).toHaveURL(/\/leagues\?connected=sleeper$/);
+  await expect(page.getByText("Sleeper connected. 1 league loaded.")).toBeVisible();
+  await expect(page.getByRole("link", { name: /Sunday Strategy/ })).toBeVisible();
+});
+
 test("advertises only complete launch destinations", async ({ page }) => {
   await page.goto("/dashboard");
 
@@ -76,5 +91,5 @@ test("fails closed when a user guesses another league URL", async ({ page }) => 
   await page.goto("/leagues/sleeper/forbidden");
 
   await expect(page.getByRole("heading", { name: "Recommendation Data Is Unavailable" })).toBeVisible();
-  await expect(page.getByText("The application API returned 403.")).toBeVisible();
+  await expect(page.getByText("League is not owned by this user.")).toBeVisible();
 });
