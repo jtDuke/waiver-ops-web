@@ -28,6 +28,7 @@ import {
 const LOCAL_API_URL = "http://127.0.0.1:8000";
 const REQUEST_TIMEOUT_MS = 4_000;
 const PROVIDER_MUTATION_TIMEOUT_MS = 20_000;
+const RECOMMENDATION_REQUEST_TIMEOUT_MS = 20_000;
 
 export class ApiRequestError extends Error {
   constructor(message: string, readonly status?: number) {
@@ -166,6 +167,7 @@ export async function getRecommendationSnapshot(
       `/api/v1/leagues/${provider.data}/${encodeURIComponent(leagueId)}/recommendations`,
       cookieHeader,
       recommendationResponseSchema,
+      { timeoutMs: RECOMMENDATION_REQUEST_TIMEOUT_MS },
     );
 
     if (!data.recommendation_available || !data.recommendation_view) {

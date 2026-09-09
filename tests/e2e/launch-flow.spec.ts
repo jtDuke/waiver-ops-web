@@ -65,7 +65,7 @@ test("saves a default league and completes the waiver decision flow", async ({ p
   await expect(page.getByText("Default", { exact: true })).toBeVisible();
 
   await page.getByRole("link", { name: /Sunday Strategy/ }).click();
-  await expect(page.getByRole("heading", { name: "Best Moves for This Roster" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Best Moves for This Roster" })).toBeVisible({ timeout: 10_000 });
   await expect(page.getByRole("heading", { name: "Jordan Example" })).toBeVisible();
   await expect(page.getByText("Meaningful news", { exact: true })).toBeVisible();
 

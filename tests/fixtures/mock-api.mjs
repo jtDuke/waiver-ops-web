@@ -188,6 +188,7 @@ const server = createServer(async (request, response) => {
     return json(response, 403, { detail: "League is not owned by this user." });
   }
   if (pathname === "/api/v1/leagues/sleeper/league-1/recommendations") {
+    await new Promise((resolve) => setTimeout(resolve, 4_500));
     return json(response, 200, {
       provider: "sleeper",
       league_id: "league-1",
