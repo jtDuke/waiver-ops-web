@@ -4,8 +4,8 @@ The standalone Next.js frontend for Waiver Ops. This repository owns the web
 experience only; the tested recommendation engine and provider integrations
 remain behind the versioned Python/FastAPI API in `waiver-ops`.
 
-The executable path to production and complete Streamlit removal is maintained
-in [NEXTJS_LAUNCH_PLAN.md](NEXTJS_LAUNCH_PLAN.md). The matching one-time and
+The production architecture and remaining launch work are maintained in
+[NEXTJS_LAUNCH_PLAN.md](NEXTJS_LAUNCH_PLAN.md). The matching one-time and
 repeatable hosting instructions are in
 [PRODUCTION_DEPLOYMENT.md](PRODUCTION_DEPLOYMENT.md).
 
@@ -111,14 +111,13 @@ Next.js build. Install Chromium once on a new development machine with
 
 ## Deployment status
 
-The Next.js application is deployed at
-`https://waiver-ops-web.vercel.app`, the FastAPI service is deployed at
-`https://waiver-ops-api.onrender.com`, and Auth0 sign-in has passed an
-end-to-end hosted smoke test. The remaining cutover work is attaching
-`waiverops.com`, applying the final-domain environment and callback values,
-and running the production acceptance checklist.
+The Next.js application is live at `https://waiverops.com`, the FastAPI service
+is deployed at `https://waiver-ops-api.onrender.com`, and Auth0 sign-in has
+passed an end-to-end hosted smoke test. Sleeper account discovery and league
+loading are live. Yahoo-specific acceptance is intentionally paused while
+Yahoo reviews the Fantasy Sports API access application.
 
 Vercel builds run a hosted-configuration guard before Next.js compilation;
-keep system environment variables enabled so `VERCEL=1` is available.
-Streamlit is frozen and will be removed after the production acceptance checks
-in the launch plan; it is not the rollback path.
+keep system environment variables enabled so `VERCEL=1` is available. The
+Python repository is API-only; its final legacy UI revision is preserved by the
+`streamlit-final` Git tag and is not the rollback path.

@@ -74,7 +74,8 @@ From `waiver_priority`:
 
 Run `npm run dev:stack` and manually complete the launch flow before touching
 production configuration. Playwright covers the deterministic launch journey;
-Auth0 and Yahoo callbacks still require hosted smoke tests.
+Auth0 has passed its hosted smoke test. Yahoo callback validation is deferred
+until Yahoo approves the Fantasy Sports API access application.
 
 ## 2. Prepare Neon
 

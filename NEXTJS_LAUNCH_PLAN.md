@@ -5,8 +5,8 @@
 `waiver-ops-web` becomes the only product user interface. The Python repository
 continues as a framework-neutral recommendation service exposed through
 FastAPI, and `waiver-intelligence` remains a separate scheduled producer.
-Streamlit receives no additional product work and is removed after the Next.js
-production acceptance checks pass.
+The retired Python UI has been removed from `waiver-ops`; its final revision is
+preserved by the `streamlit-final` Git tag.
 
 The replacement is a product cutover, not a screen-for-screen port. Features
 that do not support the primary waiver decision flow are hidden until they are
@@ -57,10 +57,12 @@ Known launch gaps:
 - Manual refresh has no complete user feedback loop.
 - Rival-interest data is not fully presented in Next.js.
 - Critical authenticated browser flows do not yet have Playwright coverage.
-- FastAPI and Next.js have not been deployed together with production Auth0,
-  Yahoo callback, CORS, cookie, domain, and Neon configuration.
-- Streamlit remains deployed and its entry point, dependency, tests, assets,
-  configuration, and documentation remain in `waiver-ops`.
+- Vercel, Render, Auth0, the production domain, CORS, secure sessions, and Neon
+  are deployed and have passed the authenticated hosted smoke test.
+- Sleeper connection and league loading are live. Yahoo-specific acceptance is
+  deferred while Yahoo reviews the Fantasy Sports API application.
+- The retired Python UI source, dependencies, tests, assets, and tracked
+  configuration have been removed from `waiver-ops`.
 
 ## Critical path
 
@@ -161,10 +163,11 @@ league smoke tests without Streamlit installed in that runtime.
 
 ### Phase 4 — Deploy the replacement stack
 
-Status: **ready for account-side configuration.** Vercel builds now fail early
-when the hosted API/Auth0/origin contract is absent or unsafe. Creating the
-Render, Vercel, and Auth0 resources and changing DNS require the owner's hosted
-accounts and production values.
+Status: **complete for Auth0 and Sleeper.** Vercel serves `waiverops.com`,
+Render hosts FastAPI, Neon is connected with restricted runtime credentials,
+Auth0 login/logout works on the production origin, and the live Sleeper flow
+loads league records. Yahoo-specific acceptance remains deferred pending API
+approval.
 
 1. Deploy FastAPI to the selected managed Python container host and attach
    `api.waiverops.com`.
@@ -183,6 +186,12 @@ load an authorized league, receive the expected intelligence-adjusted
 recommendations, refresh, and sign out over the production domains.
 
 ### Phase 5 — Remove Streamlit completely
+
+Status: **repository cleanup complete; hosted-service shutdown remains.** The
+`streamlit-final` tag is published and the Python UI, dependency, tracked
+configuration, tests, helper scripts, visual asset, and obsolete local-news
+compatibility layer are gone from `waiver-ops`. The remaining operational step
+is to disable the Community Cloud application and remove or rotate its secrets.
 
 Create an annotated `streamlit-final` Git tag before removal. Do not create a
 permanent legacy repository or legacy source folder; the tag and Git history
