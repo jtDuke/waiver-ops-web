@@ -59,6 +59,11 @@ the internal user, enforces tenant authorization, and owns the application
 session. Next.js performs the ID-token exchange server-side, and neither the
 Auth0 token nor the FastAPI session is exposed to browser JavaScript.
 
+If Auth0's ID token expires before its browser session, the sync route performs
+one fresh authorization round trip and retries once. A second rejection fails
+closed on the session-error page. Logout always sends Auth0 an absolute
+production return URL.
+
 1. Create an Auth0 **Regular Web Application**.
 2. Configure these application URLs:
    - callback: `https://<web-domain>/auth/callback`

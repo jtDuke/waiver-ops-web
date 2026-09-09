@@ -12,7 +12,7 @@ export default function SessionErrorPage() {
         <p>Your sign-in succeeded, but the application service could not create a secure session. This is usually a temporary API or configuration issue.</p>
         <div className="auth-state-actions">
           <Link className="button primary-button" href="/auth/sync">Try Again</Link>
-          <a className="button secondary-button" href="/auth/logout?returnTo=/">Sign Out</a>
+          <a className="button secondary-button" href="/logout">Sign Out</a>
         </div>
       </section>
     </main>
