@@ -10,6 +10,7 @@ let preferences = {
 let refreshCount = 0;
 let sleeperConnected = true;
 let recommendationStartedAt = 0;
+let transientRecommendationFailures = 0;
 
 const leagues = [
   {
@@ -210,7 +211,10 @@ const server = createServer(async (request, response) => {
   if (pathname === "/api/v1/leagues/sleeper/forbidden/recommendations") {
     return json(response, 403, { detail: "League is not owned by this user." });
   }
-  if (pathname === "/api/v1/leagues/sleeper/league-1/recommendation-progress") {
+  if (
+    pathname === "/api/v1/leagues/sleeper/league-1/recommendation-progress" ||
+    pathname === "/api/v1/leagues/sleeper/transient-retry/recommendation-progress"
+  ) {
     const stages = [
       "Checking saved analysis",
       "Loading league and rosters",
@@ -228,12 +232,21 @@ const server = createServer(async (request, response) => {
       failed: false,
     });
   }
-  if (pathname === "/api/v1/leagues/sleeper/league-1/recommendations") {
+  if (
+    pathname === "/api/v1/leagues/sleeper/league-1/recommendations" ||
+    pathname === "/api/v1/leagues/sleeper/transient-retry/recommendations"
+  ) {
+    if (pathname.includes("transient-retry") && transientRecommendationFailures === 0) {
+      transientRecommendationFailures += 1;
+      return json(response, 502, { detail: "Temporary upstream restart." });
+    }
     recommendationStartedAt = Date.now();
-    await new Promise((resolve) => setTimeout(resolve, 4_500));
+    await new Promise((resolve) =>
+      setTimeout(resolve, pathname.includes("transient-retry") ? 100 : 4_500),
+    );
     return json(response, 200, {
       provider: "sleeper",
-      league_id: "league-1",
+      league_id: pathname.includes("transient-retry") ? "transient-retry" : "league-1",
       week: 1,
       league: { name: "Sunday Strategy", season: "2026" },
       recommendation_available: true,

@@ -105,3 +105,11 @@ test("fails closed when a user guesses another league URL", async ({ page }) => 
   await expect(page.getByRole("heading", { name: "Recommendation Data Is Unavailable" })).toBeVisible();
   await expect(page.getByText("League is not owned by this user.")).toBeVisible();
 });
+
+test("recovers from one transient recommendation gateway failure", async ({ page }) => {
+  await page.goto("/leagues/sleeper/transient-retry");
+
+  await expect(page.getByRole("heading", { name: "Best Moves for This Roster" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Jordan Example" })).toBeVisible();
+  await expect(page.getByText("The application API returned 502.")).toHaveCount(0);
+});

@@ -31,6 +31,8 @@ const LOCAL_API_URL = "http://127.0.0.1:8000";
 const REQUEST_TIMEOUT_MS = 4_000;
 const PROVIDER_MUTATION_TIMEOUT_MS = 20_000;
 const RECOMMENDATION_REQUEST_TIMEOUT_MS = 45_000;
+const TRANSIENT_RETRY_DELAY_MS = 350;
+const TRANSIENT_RETRY_STATUSES = new Set([502, 503, 504]);
 
 export class ApiRequestError extends Error {
   constructor(message: string, readonly status?: number) {
@@ -56,6 +58,7 @@ async function requestApi<T>(
     method?: "GET" | "POST" | "PATCH" | "DELETE";
     body?: unknown;
     timeoutMs?: number;
+    retryTransient?: boolean;
   } = {},
 ): Promise<T> {
   const headers = new Headers();
@@ -65,13 +68,22 @@ async function requestApi<T>(
   if (options.body !== undefined) {
     headers.set("content-type", "application/json");
   }
-  const response = await fetch(`${baseUrl}${path}`, {
-    cache: "no-store",
-    method: options.method ?? "GET",
-    headers,
-    body: options.body === undefined ? undefined : JSON.stringify(options.body),
-    signal: AbortSignal.timeout(options.timeoutMs ?? REQUEST_TIMEOUT_MS),
-  });
+  let response: Response;
+  for (let attempt = 0; ; attempt += 1) {
+    response = await fetch(`${baseUrl}${path}`, {
+      cache: "no-store",
+      method: options.method ?? "GET",
+      headers,
+      body: options.body === undefined ? undefined : JSON.stringify(options.body),
+      signal: AbortSignal.timeout(options.timeoutMs ?? REQUEST_TIMEOUT_MS),
+    });
+    const shouldRetry =
+      options.retryTransient === true &&
+      attempt === 0 &&
+      TRANSIENT_RETRY_STATUSES.has(response.status);
+    if (!shouldRetry) break;
+    await new Promise((resolve) => setTimeout(resolve, TRANSIENT_RETRY_DELAY_MS));
+  }
 
   if (!response.ok) {
     const body = await response.json().catch(() => null) as unknown;
@@ -169,7 +181,10 @@ export async function getRecommendationSnapshot(
       `/api/v1/leagues/${provider.data}/${encodeURIComponent(leagueId)}/recommendations`,
       cookieHeader,
       recommendationResponseSchema,
-      { timeoutMs: RECOMMENDATION_REQUEST_TIMEOUT_MS },
+      {
+        timeoutMs: RECOMMENDATION_REQUEST_TIMEOUT_MS,
+        retryTransient: true,
+      },
     );
 
     if (!data.recommendation_available || !data.recommendation_view) {
