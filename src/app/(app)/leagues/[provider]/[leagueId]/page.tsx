@@ -3,6 +3,7 @@ import { connection } from "next/server";
 
 import { ArrowIcon, IntelligenceIcon, LeagueIcon, PulseIcon } from "@/components/icons";
 import { RefreshLeagueForm } from "@/components/refresh-league-form";
+import { RecommendationRetry } from "@/components/recommendation-retry";
 import { SectionPage } from "@/components/section-page";
 import type { Recommendation } from "@/lib/api/contracts";
 import { getRecommendationSnapshot } from "@/lib/api/server";
@@ -90,7 +91,8 @@ export default async function LeagueDetailPage({ params, searchParams }: PagePro
     const title = snapshot.status === "not-ready" ? snapshot.data.league.name : "League Recommendations";
     const description = snapshot.status === "not-ready"
       ? `${snapshot.data.league.season} · Week ${snapshot.data.week}`
-      : "The recommendation service did not return a usable league view.";
+      : snapshot.busy ? "The analysis service is busy. Your roster has not been changed."
+      : "We couldn’t load your analysis this time. Your roster has not been changed.";
 
     return (
       <SectionPage
@@ -101,8 +103,10 @@ export default async function LeagueDetailPage({ params, searchParams }: PagePro
       >
         <section className="panel placeholder-panel">
           <span aria-hidden="true" className="empty-icon">{snapshot.status === "not-ready" ? <LeagueIcon /> : <PulseIcon />}</span>
-          <h2>{snapshot.status === "not-ready" ? "Recommendations Aren’t Ready Yet" : "Recommendation Data Is Unavailable"}</h2>
-          <p>{snapshot.reason}</p>
+          <h2>{snapshot.status === "not-ready" ? "Recommendations Aren’t Ready Yet" : snapshot.busy ? "Analysis Is Temporarily Busy" : "Recommendation Data Is Unavailable"}</h2>
+          <p>{snapshot.status === "unavailable" && snapshot.busy ? "Another analysis is using the available capacity. Try again shortly." : snapshot.reason}</p>
+          {snapshot.status === "unavailable" && snapshot.retryAfterMs !== undefined
+            ? <RecommendationRetry delayMs={snapshot.retryAfterMs} /> : null}
           <Link className="text-link" href="/leagues">Back to Leagues <ArrowIcon /></Link>
         </section>
       </SectionPage>

@@ -264,6 +264,8 @@ input:hover, select:hover { border-color: var(--ink-subtle); }
 .error-boundary h1 { font-size: clamp(1.8rem, 5vw, 2.8rem); letter-spacing: -0.05em; }
 .progressive-loading { min-height: 520px; opacity: 0; padding-top: 76px; transition: opacity 120ms ease; }
 .progressive-loading.visible { opacity: 1; }
+.recommendation-retry { margin: 20px 0; }
+.recommendation-retry .button { margin-top: 12px; }
 .progressive-loading h1 { max-width: 720px; font-size: clamp(2.2rem, 6vw, 4rem); letter-spacing: -0.055em; line-height: 0.98; margin-top: 12px; }
 .loading-status { max-width: 680px; color: var(--ink-muted); font-size: 0.84rem; line-height: 1.6; margin-top: 22px; }
 .stage-progress { display: grid; max-width: 680px; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 7px; margin-top: 28px; }

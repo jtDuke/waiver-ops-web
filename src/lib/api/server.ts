@@ -31,11 +31,11 @@ const LOCAL_API_URL = "http://127.0.0.1:8000";
 const REQUEST_TIMEOUT_MS = 4_000;
 const PROVIDER_MUTATION_TIMEOUT_MS = 20_000;
 const RECOMMENDATION_REQUEST_TIMEOUT_MS = 45_000;
-const TRANSIENT_RETRY_DELAY_MS = 350;
+const TRANSIENT_RETRY_DELAY_MS = 2_000;
 const TRANSIENT_RETRY_STATUSES = new Set([502, 503, 504]);
 
 export class ApiRequestError extends Error {
-  constructor(message: string, readonly status?: number) {
+  constructor(message: string, readonly status?: number, readonly retryAfterMs = 2_000) {
     super(message);
   }
 }
@@ -69,20 +69,30 @@ async function requestApi<T>(
     headers.set("content-type", "application/json");
   }
   let response: Response;
+  // All attempts share one budget, below the route's 60-second host limit.
+  const deadline = Date.now() + (options.timeoutMs ?? REQUEST_TIMEOUT_MS);
+  let retryAfterMs = TRANSIENT_RETRY_DELAY_MS;
   for (let attempt = 0; ; attempt += 1) {
     response = await fetch(`${baseUrl}${path}`, {
       cache: "no-store",
       method: options.method ?? "GET",
       headers,
       body: options.body === undefined ? undefined : JSON.stringify(options.body),
-      signal: AbortSignal.timeout(options.timeoutMs ?? REQUEST_TIMEOUT_MS),
+      signal: AbortSignal.timeout(Math.max(1, deadline - Date.now())),
     });
+    const retryHeader = response.headers.get("retry-after");
+    const seconds = retryHeader && /^\d+$/.test(retryHeader) ? Number(retryHeader) : NaN;
+    const dateDelay = retryHeader ? Date.parse(retryHeader) - Date.now() : NaN;
+    retryAfterMs = Math.max(1_000, Number.isFinite(seconds) ? seconds * 1_000
+      : Number.isFinite(dateDelay) ? dateDelay : TRANSIENT_RETRY_DELAY_MS);
     const shouldRetry =
       options.retryTransient === true &&
       attempt === 0 &&
-      TRANSIENT_RETRY_STATUSES.has(response.status);
+      TRANSIENT_RETRY_STATUSES.has(response.status) &&
+      retryAfterMs <= 10_000 && Date.now() + retryAfterMs + 1_000 < deadline;
     if (!shouldRetry) break;
-    await new Promise((resolve) => setTimeout(resolve, TRANSIENT_RETRY_DELAY_MS));
+    await response.body?.cancel();
+    await new Promise((resolve) => setTimeout(resolve, retryAfterMs));
   }
 
   if (!response.ok) {
@@ -97,6 +107,7 @@ async function requestApi<T>(
         ? "Your application session has expired."
         : detail || `The application API returned ${response.status}.`,
       response.status,
+      Math.min(60_000, retryAfterMs),
     );
   }
 
@@ -207,7 +218,13 @@ export async function getRecommendationSnapshot(
       error instanceof ApiRequestError
         ? error.message
         : "The application API is currently unreachable.";
-    return { status: "unavailable", reason };
+    const retryable = !(error instanceof ApiRequestError) ||
+      (error.status !== undefined && TRANSIENT_RETRY_STATUSES.has(error.status));
+    return {
+      status: "unavailable", reason,
+      retryAfterMs: retryable ? (error instanceof ApiRequestError ? error.retryAfterMs : 2_000) : undefined,
+      busy: error instanceof ApiRequestError && error.status === 503,
+    };
   }
 }
 

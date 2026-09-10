@@ -104,6 +104,20 @@ test("fails closed when a user guesses another league URL", async ({ page }) => 
 
   await expect(page.getByRole("heading", { name: "Recommendation Data Is Unavailable" })).toBeVisible();
   await expect(page.getByText("League is not owned by this user.")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Try again" })).toHaveCount(0);
+});
+
+test("offers bounded busy recovery without changing league or filters", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.goto("/leagues/sleeper/busy-retry?news=1");
+  await expect(page.getByRole("heading", { name: "Analysis Is Temporarily Busy" })).toBeVisible();
+  const retry = page.getByRole("button", { name: "Try again" });
+  await expect(retry).toBeDisabled();
+  await expect(retry).toBeEnabled({ timeout: 5_000 });
+  await retry.click();
+  await expect(page.getByRole("button", { name: "Checking…" })).toBeDisabled();
+  await expect(page.getByRole("heading", { name: "Best Moves for This Roster" })).toBeVisible({ timeout: 10_000 });
+  await expect(page).toHaveURL(/busy-retry\?news=1$/);
 });
 
 test("recovers from one transient recommendation gateway failure", async ({ page }) => {

@@ -321,6 +321,8 @@ export type RecommendationSnapshot =
   | {
       status: "unavailable";
       reason: string;
+      retryAfterMs?: number;
+      busy?: boolean;
     };
 
 export type ConnectionSnapshot =

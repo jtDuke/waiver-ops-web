@@ -11,6 +11,7 @@ let refreshCount = 0;
 let sleeperConnected = true;
 let recommendationStartedAt = 0;
 let transientRecommendationFailures = 0;
+let busyRecommendationFailures = 0;
 
 const leagues = [
   {
@@ -211,6 +212,11 @@ const server = createServer(async (request, response) => {
   if (pathname === "/api/v1/leagues/sleeper/forbidden/recommendations") {
     return json(response, 403, { detail: "League is not owned by this user." });
   }
+  if (pathname === "/api/v1/leagues/sleeper/busy-retry/recommendations" && busyRecommendationFailures < 2) {
+    busyRecommendationFailures += 1;
+    response.setHeader("Retry-After", "2");
+    return json(response, 503, { detail: "Another calculation is running." });
+  }
   if (
     pathname === "/api/v1/leagues/sleeper/league-1/recommendation-progress" ||
     pathname === "/api/v1/leagues/sleeper/transient-retry/recommendation-progress"
@@ -234,6 +240,7 @@ const server = createServer(async (request, response) => {
   }
   if (
     pathname === "/api/v1/leagues/sleeper/league-1/recommendations" ||
+    pathname === "/api/v1/leagues/sleeper/busy-retry/recommendations" ||
     pathname === "/api/v1/leagues/sleeper/transient-retry/recommendations"
   ) {
     if (pathname.includes("transient-retry") && transientRecommendationFailures === 0) {
