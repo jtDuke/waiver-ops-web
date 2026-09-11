@@ -260,6 +260,10 @@ const server = createServer(async (request, response) => {
       recommendation_reason: null,
       recommendation_view: {
         target_roster_id: "1",
+        roster_players: [
+          { player_id: "drop-1", name: "Bench Example", position: "WR", team: "SEA", slot: "Bench" },
+          { player_id: "starter-1", name: "Starter Example", position: "QB", team: "KC", slot: "Starter" },
+        ],
         target_strength: {
           team_name: "Waiver Scientists",
           owner_names: ["Test Manager"],
@@ -289,9 +293,9 @@ const server = createServer(async (request, response) => {
         lookback_hours: 24,
         market_status: "ready",
         activity_status: "ready",
-        market_trends: [{ player_id: "trend-1", name: "Trending Player", position: "RB", team: "GB", adds: 1834 }],
-        league_activity: [],
-        rival_opportunities: [{ player_id: "rival-1", name: "Rival Target", position: "TE", team: "BAL", best_rival_gain: 2.4, rival_teams_helped: 2, top_teams: ["Fourth and Long"] }],
+        market_trends: [{ player_id: "trend-1", name: "Trending Player", position: "RB", team: "GB", adds: 1834 }, ...Array.from({ length: 11 }, (_, i) => ({ player_id: `extra-${i}`, name: `Extra Trend ${i}`, position: "WR", team: "SEA", adds: 100 - i }))],
+        league_activity: [{ transaction_id: "tx-1", type: "waiver", created: 1789063200000, team_names: ["Transaction Team"], adds: [{ name: "Added Example" }], drops: [{ name: "Dropped Example" }] }],
+        rival_opportunities: [...Array.from({ length: 6 }, (_, i) => ({ player_id: `kicker-${i}`, name: `Rival Kicker ${i}`, position: "K", team: "SEA", best_rival_gain: 6 - i / 10, rival_teams_helped: 1, top_teams: ["Streaming Team"] })), { player_id: "rival-1", name: "Rival Target", position: "TE", team: "BAL", best_rival_gain: 2.4, rival_teams_helped: 2, top_teams: ["Fourth and Long"] }],
       },
       source_warnings: [],
       intelligence: {

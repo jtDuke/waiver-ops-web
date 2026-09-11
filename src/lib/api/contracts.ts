@@ -173,6 +173,10 @@ const recommendationViewSchema = z
       })
       .passthrough(),
     strongest_need: z.string(),
+    roster_players: z.array(z.object({
+      player_id: z.string(), name: z.string(), position: z.string(),
+      team: z.string().nullable(), slot: z.enum(["Starter", "Bench", "IR", "Taxi"]),
+    })).default([]),
     recommendations: z.array(recommendationItemSchema),
     direct_recommendations: z.array(recommendationItemSchema),
     primary_recommendations: z.array(recommendationItemSchema).optional(),
@@ -236,6 +240,7 @@ export const recommendationResponseSchema = z.object({
       league_activity: z.array(
         z.object({
           transaction_id: z.string(),
+          team_names: z.array(z.string()).default([]),
           type: z.string(),
           created: z.unknown().nullable().optional(),
           adds: z.array(z.record(z.string(), z.unknown())),

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { LeaguePulse, RosterContext } from "@/components/league-context";
 import { connection } from "next/server";
 
 import { ArrowIcon, IntelligenceIcon, LeagueIcon, PulseIcon } from "@/components/icons";
@@ -117,14 +118,12 @@ export default async function LeagueDetailPage({ params, searchParams }: PagePro
   const view = data.recommendation_view;
   const recommendations = view.primary_recommendations ?? view.direct_recommendations;
   const watchlist = view.watchlist_recommendations;
-  const search = queryValue(query.q).trim().toLowerCase();
   const selectedPosition = queryValue(query.position);
   const selectedCategory = queryValue(query.category);
   const newsOnly = queryValue(query.news) === "1";
   const positions = [...new Set(recommendations.map((item) => item.position))].sort();
   const categories = [...new Set(recommendations.map((item) => item.category_label))].sort();
   const matchesFilters = (item: Recommendation) => {
-    if (search && !`${item.name} ${item.team ?? ""}`.toLowerCase().includes(search)) return false;
     if (selectedPosition && item.position !== selectedPosition) return false;
     if (selectedCategory && item.category_label !== selectedCategory) return false;
     if (newsOnly && !item.player_signal?.summary) return false;
@@ -137,25 +136,12 @@ export default async function LeagueDetailPage({ params, searchParams }: PagePro
 
   return (
     <SectionPage action={<RefreshLeagueForm leagueId={leagueId} provider={provider} />} eyebrow={`${data.provider} · ${data.league.season} · Week ${data.week}`} title={data.league.name} description={`Recommendations for ${teamName}, calibrated to this league’s scoring, rosters, and available players.`}>
-      <section aria-label="Recommendation context" className="recommendation-overview panel">
-        <div><span>Team</span><strong>{teamName}</strong></div>
-        <div title={view.roster_assessment?.weakness_explanation}><span>Roster weakness</span><strong>{view.roster_assessment?.weakest_position ?? view.strongest_need ?? "None"}</strong></div>
-        <div><span>Best waiver opportunity</span><strong>{view.roster_assessment?.best_waiver_opportunity?.position ?? "Stand pat"}</strong></div>
-        <div><span>League position</span><strong>{view.target_strength.league_rank} of {view.target_strength.league_size}</strong></div>
-        <div><span>Player intelligence</span><strong className={data.intelligence.enabled ? "positive-text" : "muted-text"}>{data.intelligence.enabled ? "Applied" : "Neutral"}</strong></div>
-        {view.roster_assessment ? <p className="assessment-context">{view.roster_assessment.weakness_explanation} A roster weakness only becomes a recommendation when an available add/drop pair clears the impact threshold.</p> : null}
-      </section>
+      <RosterContext view={view} recommendations={recommendations} />
+      <LeaguePulse pulse={data.league_pulse} />
 
-      <div className="board-heading">
-        <div><p className="eyebrow">Priority board</p><h2>Best Moves for This Roster</h2></div>
-        <p>{filteredRecommendations.length} of {recommendations.length} useful {recommendations.length === 1 ? "move" : "moves"}</p>
-      </div>
-
+      <details className="primary-board" open>
+      <summary className="board-toggle"><h2>Best Moves for This Roster</h2><span>{filteredRecommendations.length} useful moves · Collapse / expand</span></summary>
       <form className="recommendation-filters panel" method="get">
-        <label className="search-field">
-          <span>Find a player</span>
-          <input defaultValue={queryValue(query.q)} name="q" placeholder="Name or team" type="search" />
-        </label>
         <label>
           <span>Position</span>
           <select defaultValue={selectedPosition} name="position">
@@ -194,6 +180,8 @@ export default async function LeagueDetailPage({ params, searchParams }: PagePro
         </section>
       )}
 
+      </details>
+
       {filteredWatchlist.length > 0 ? (
         <details className="panel secondary-board">
           <summary>Small Edges <span>{filteredWatchlist.length} marginal {filteredWatchlist.length === 1 ? "move" : "moves"}</span></summary>
@@ -205,31 +193,6 @@ export default async function LeagueDetailPage({ params, searchParams }: PagePro
           </section>
         </details>
       ) : null}
-
-      <details className="panel league-pulse">
-        <summary>League Pulse <span>Sleeper market and league activity</span></summary>
-        <div className="league-pulse-grid">
-          <section>
-            <h3>Sleeper-wide trends</h3>
-            <p>Available players added across Sleeper in the last {data.league_pulse.lookback_hours} hours.</p>
-            {data.league_pulse.market_trends.length > 0 ? <ul>{data.league_pulse.market_trends.slice(0, 6).map((item) => <li key={item.player_id}><strong>{item.name}</strong><span>{item.position} · {item.adds.toLocaleString()} adds</span></li>)}</ul> : <p className="pulse-empty">{data.league_pulse.market_status === "ready" ? "No available player is trending in this window." : "Sleeper trends are temporarily unavailable."}</p>}
-          </section>
-          <section>
-            <h3>Your league moves</h3>
-            <p>Completed waivers and free-agent transactions.</p>
-            {data.league_pulse.league_activity.length > 0 ? <ul>{data.league_pulse.league_activity.slice(0, 6).map((item) => {
-              const added = item.adds[0]?.name;
-              const dropped = item.drops[0]?.name;
-              return <li key={item.transaction_id}><strong>{typeof added === "string" ? added : "Roster move"}</strong><span>{typeof dropped === "string" ? `Dropped ${dropped}` : item.type.replace("_", " ")}</span></li>;
-            })}</ul> : <p className="pulse-empty">{data.league_pulse.activity_status === "ready" ? "No completed moves were found for this week." : "League transactions are temporarily unavailable."}</p>}
-          </section>
-          <section>
-            <h3>Rival opportunities</h3>
-            <p>High-impact fits another roster could act on.</p>
-            {data.league_pulse.rival_opportunities.length > 0 ? <ul>{data.league_pulse.rival_opportunities.slice(0, 6).map((item) => <li key={item.player_id}><strong>{item.name}</strong><span>{signedPoints(item.best_rival_gain)} pts/wk · {item.rival_teams_helped} teams</span></li>)}</ul> : <p className="pulse-empty">No high-impact rival opportunity clears the alert threshold.</p>}
-          </section>
-        </div>
-      </details>
 
       <Link className="text-link board-back-link" href="/leagues">Back to all leagues <ArrowIcon /></Link>
     </SectionPage>

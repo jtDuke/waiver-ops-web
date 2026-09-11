@@ -75,14 +75,13 @@ test("saves a default league and completes the waiver decision flow", async ({ p
   await page.locator(".secondary-board > summary").click();
   await expect(page.getByRole("heading", { name: "Casey Baseline" })).toBeVisible();
 
-  await page.locator(".league-pulse > summary").click();
   await expect(page.getByText("Trending Player", { exact: true })).toBeVisible();
   await expect(page.getByText("Rival Target", { exact: true })).toBeVisible();
 
   await page.locator(".recommendation-card .move-details > summary").first().click();
   await expect(page.getByText(/Modeled fit for 1 rival team/)).toBeVisible();
-  await expect(page.getByText("Fourth and Long")).toBeVisible();
-  await expect(page.getByText(/not claim intent/)).toBeVisible();
+  await expect(page.locator(".recommendation-card").getByText("Fourth and Long")).toBeVisible();
+  await expect(page.locator(".recommendation-card").getByText(/not claim intent/)).toBeVisible();
 
   await page.getByRole("button", { name: "Refresh league" }).click();
   await expect(page.getByText(/League data refreshed|already current/)).toBeVisible();
@@ -105,6 +104,33 @@ test("fails closed when a user guesses another league URL", async ({ page }) => 
   await expect(page.getByRole("heading", { name: "Recommendation Data Is Unavailable" })).toBeVisible();
   await expect(page.getByText("League is not owned by this user.")).toBeVisible();
   await expect(page.getByRole("button", { name: "Try again" })).toHaveCount(0);
+});
+
+test("keeps roster context compact and league activity above collapsible moves", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/leagues/sleeper/league-1?q=ignored-legacy-search");
+  await expect(page.getByRole("heading", { name: "Jordan Example" })).toBeVisible();
+  await expect(page.getByRole("searchbox")).toHaveCount(0);
+  await expect(page.getByText("Transaction Team", { exact: true })).toBeVisible();
+  await expect(page.getByText(/^Rival Kicker/)).toHaveCount(2);
+  await expect(page.getByText("Extra Trend 10", { exact: true })).not.toBeVisible();
+  await page.locator(".pulse-more > summary").click();
+  await expect(page.getByText("Extra Trend 10", { exact: true })).toBeVisible();
+  await expect(page.locator(".roster-context")).not.toHaveAttribute("open", "");
+  await page.locator(".roster-context > summary").click();
+  await expect(page.locator(".drop-candidate")).toHaveCount(1);
+  await expect(page.locator(".drop-candidate")).toContainText("Bench Example");
+  await expect(page.locator(".drop-candidate")).toContainText("Jordan Example");
+  await expect(page.getByText("Starter Example", { exact: true })).toBeVisible();
+  await page.locator(".board-toggle").click();
+  await expect(page.getByRole("heading", { name: "Jordan Example" })).not.toBeVisible();
+  await page.locator(".board-toggle").focus();
+  await page.keyboard.press("Enter");
+  await expect(page.getByRole("heading", { name: "Jordan Example" })).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBeTruthy();
+  await page.screenshot({ path: "test-results/roster-pulse-mobile.png", fullPage: true });
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await page.screenshot({ path: "test-results/roster-pulse-desktop.png", fullPage: true });
 });
 
 test("offers bounded busy recovery without changing league or filters", async ({ page }) => {
