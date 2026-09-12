@@ -6,8 +6,9 @@ import { ArrowIcon, IntelligenceIcon, LeagueIcon, PulseIcon } from "@/components
 import { RefreshLeagueForm } from "@/components/refresh-league-form";
 import { RecommendationRetry } from "@/components/recommendation-retry";
 import { SectionPage } from "@/components/section-page";
-import type { Recommendation } from "@/lib/api/contracts";
+import type { Recommendation, RecommendationResponse } from "@/lib/api/contracts";
 import { getRecommendationSnapshot } from "@/lib/api/server";
+import { completenessNoteText, scoringSettingList } from "@/lib/scoring-coverage";
 
 export const metadata = { title: "League recommendations" };
 export const maxDuration = 60;
@@ -59,6 +60,16 @@ function RecommendationCard({ recommendation, rank }: { recommendation: Recommen
               </div>
             </div>
           ) : <p className="rival-disclaimer">This ranking is driven by projected lineup impact and roster cost; no meaningful current news changed it.</p>}
+          {!recommendation.data_complete && recommendation.completeness_notes.length > 0 ? (
+            <div className="coverage-details">
+              <strong>What this estimate is missing</strong>
+              <ul>
+                {recommendation.completeness_notes.map((note) => (
+                  <li key={note}>{completenessNoteText(note)}</li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
           {rivals.length > 0 ? (
             <div className="rival-details-body">
               <strong>League competition</strong>
@@ -79,6 +90,21 @@ function RecommendationCard({ recommendation, rank }: { recommendation: Recommen
         <div><dt>Net 3-week avg.</dt><dd>{signedPoints(netHorizon)}<span> pts/wk</span></dd></div>
       </dl>
     </article>
+  );
+}
+
+function ScoringCoverageNote({ audit }: { audit: RecommendationResponse["scoring_audit"] }) {
+  const missing = audit?.relevant_unsupported_settings ?? [];
+  if (missing.length === 0) return null;
+  const coverage = Math.round((audit?.relevant_setting_coverage ?? 1) * 100);
+
+  return (
+    <p className="coverage-note">
+      <span>Scoring coverage {coverage}%.</span> This league scores {scoringSettingList(missing)},
+      which Sleeper’s projections do not carry, so every value on this board leaves
+      {missing.length === 1 ? " that rule" : " those rules"} out. A player who earns much of their
+      points that way ranks below where they finish.
+    </p>
   );
 }
 
@@ -137,6 +163,7 @@ export default async function LeagueDetailPage({ params, searchParams }: PagePro
   return (
     <SectionPage action={<RefreshLeagueForm leagueId={leagueId} provider={provider} />} eyebrow={`${data.provider} · ${data.league.season} · Week ${data.week}`} title={data.league.name} description={`Recommendations for ${teamName}, calibrated to this league’s scoring, rosters, and available players.`}>
       <RosterContext view={view} recommendations={recommendations} />
+      <ScoringCoverageNote audit={data.scoring_audit} />
       <LeaguePulse pulse={data.league_pulse} />
 
       <details className="primary-board" open>

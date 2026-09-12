@@ -459,3 +459,10 @@ input:hover, select:hover { border-color: var(--ink-subtle); }
   *, *::before, *::after { scroll-behavior: auto !important; transition-duration: 0.01ms !important; }
   .stage-progress span.active::after { width: 100%; animation: none; }
 }
+
+.coverage-note { max-width: 78ch; border-left: 2px solid var(--border-strong); color: var(--ink-muted); font-size: 0.74rem; line-height: 1.6; margin: 4px 0 20px; padding: 2px 0 2px 12px; }
+.coverage-note span { color: var(--ink); font-weight: 700; }
+.coverage-details { border-left: 2px solid var(--warning); margin-top: 14px; padding-left: 12px; }
+.coverage-details strong { color: var(--warning); font-size: 0.68rem; }
+.coverage-details ul { display: flex; flex-direction: column; gap: 6px; list-style: none; margin-top: 6px; }
+.coverage-details li { color: var(--ink-muted); font-size: 0.72rem; line-height: 1.5; }

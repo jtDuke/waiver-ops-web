@@ -112,6 +112,8 @@ test("keeps roster context compact and league activity above collapsible moves",
   await expect(page.getByRole("heading", { name: "Jordan Example" })).toBeVisible();
   await expect(page.getByRole("searchbox")).toHaveCount(0);
   await expect(page.getByText("Transaction Team", { exact: true })).toBeVisible();
+  await expect(page.locator(".coverage-note")).toContainText("Scoring coverage 87%");
+  await expect(page.locator(".coverage-note")).toContainText("kick-return yards");
   await expect(page.getByText(/^Rival Kicker/)).toHaveCount(2);
   await expect(page.getByText("Extra Trend 10", { exact: true })).not.toBeVisible();
   await page.locator(".pulse-more > summary").click();

@@ -201,6 +201,14 @@ const recommendationViewSchema = z
   })
   .passthrough();
 
+const scoringAuditSchema = z
+  .object({
+    complete: z.boolean().default(true),
+    relevant_unsupported_settings: z.array(z.string()).default([]),
+    relevant_setting_coverage: z.number().min(0).max(1).default(1),
+  })
+  .passthrough();
+
 const intelligenceStatusSchema = z.object({
   enabled: z.boolean(),
   fingerprint: z.string().nullable(),
@@ -222,6 +230,7 @@ export const recommendationResponseSchema = z.object({
   recommendation_reason: z.string().nullable(),
   recommendation_view: recommendationViewSchema.nullable(),
   source_warnings: z.array(z.record(z.string(), z.unknown())),
+  scoring_audit: scoringAuditSchema.nullable().default(null),
   intelligence: intelligenceStatusSchema,
   league_pulse: z
     .object({

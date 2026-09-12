@@ -298,6 +298,11 @@ const server = createServer(async (request, response) => {
         rival_opportunities: [...Array.from({ length: 6 }, (_, i) => ({ player_id: `kicker-${i}`, name: `Rival Kicker ${i}`, position: "K", team: "SEA", best_rival_gain: 6 - i / 10, rival_teams_helped: 1, top_teams: ["Streaming Team"] })), { player_id: "rival-1", name: "Rival Target", position: "TE", team: "BAL", best_rival_gain: 2.4, rival_teams_helped: 2, top_teams: ["Fourth and Long"] }],
       },
       source_warnings: [],
+      scoring_audit: {
+        complete: false,
+        relevant_unsupported_settings: ["kr_yd", "rec_td_50p"],
+        relevant_setting_coverage: 0.87,
+      },
       intelligence: {
         enabled: true,
         fingerprint: "fixture-v2",
